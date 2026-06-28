@@ -1,0 +1,30 @@
+# docker/detection-lab.compose.yml
+# Minimal, RUNNABLE stub so the siemup/siemdown wiring is real and testable.
+# Replace the placeholder service with your actual stack (OpenSearch + Dashboards,
+# Elastic, Wazuh, ...). A commented real-stack skeleton is at the bottom.
+#
+#   siemup        # up -d        siemlogs   # follow        siemdown   # tear down
+
+services:
+  # ── placeholder: a tiny service so `siemup` works before you pick a SIEM ──
+  lab-placeholder:
+    image: traefik/whoami:v1.10.2 # ~6MB, pinned; stand-in for "the console"
+    container_name: lab-placeholder
+    ports:
+      - "127.0.0.1:8088:80" # bound to localhost only — not LAN-exposed
+    restart: unless-stopped
+    # Visit http://127.0.0.1:8088 to confirm the lab is up, then swap this out.
+
+# ── Real stack skeleton (uncomment + tune; data dirs are gitignored) ──────────
+#   opensearch:
+#     image: opensearchproject/opensearch:2.13.0
+#     environment:
+#       - discovery.type=single-node
+#       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PW}   # from local .env (gitignored)
+#     volumes:
+#       - ./detection-lab/data/opensearch:/usr/share/opensearch/data
+#     ports: ["127.0.0.1:9200:9200"]
+#   dashboards:
+#     image: opensearchproject/opensearch-dashboards:2.13.0
+#     ports: ["127.0.0.1:5601:5601"]
+#     depends_on: [opensearch]
