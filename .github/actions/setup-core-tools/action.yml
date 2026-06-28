@@ -1,0 +1,127 @@
+name: setup-core-tools
+description: >
+  Install Core's pinned CLI gate tools (shellcheck / actionlint / gitleaks / neovim / shfmt)
+  from their release assets, VERIFYING each download against a pinned SHA-256 before it runs.
+  ONE definition of each install, consumed by ci.yml and freshness.yml (and, vendored into
+  each OS repo's core/, by their lint workflows) — previously the same curl/tar blocks were
+  copy-pasted across jobs (B8). Both the version AND the checksum are read from the
+  environment: the caller loads scripts/tool-versions.env into $GITHUB_ENV first (the single
+  pin source), which carries TOOL_VERSION and TOOL_SHA256 for each. Verification is the point
+  — a tampered or MITM'd asset fails the build instead of executing in the gate. Each install
+  is idempotent: it no-ops when the tool is already on PATH (e.g. restored from the job's tool
+  cache — and that binary was verified on first download), so it composes with actions/cache
+  without a cache-hit conditional. Linux x86_64 (the asset arch the gates use).
+
+inputs:
+  shellcheck:
+    description: "install pinned shellcheck"
+    default: "false"
+  actionlint:
+    description: "install pinned actionlint"
+    default: "false"
+  gitleaks:
+    description: "install pinned gitleaks"
+    default: "false"
+  neovim:
+    description: "install pinned neovim"
+    default: "false"
+  shfmt:
+    description: "install pinned shfmt"
+    default: "false"
+  bindir:
+    description: "dir for the single-binary tools (must be on PATH)"
+    default: "$HOME/.local/core-tools/bin"
+
+runs:
+  using: composite
+  steps:
+    - name: shellcheck (pinned + verified)
+      if: inputs.shellcheck == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Skip only when OUR verified binary is already in bindir (a cache restore) —
+        # NOT on any `command -v` PATH match, which would let a preinstalled system
+        # shellcheck (ubuntu-latest ships one) bypass the pinned, SHA-256-verified
+        # install. The caller prepends bindir to PATH, so the verified binary wins.
+        [ -x "${{ inputs.bindir }}/shellcheck" ] && { echo "shellcheck already verified in bindir (cached)"; exit 0; }
+        : "${SHELLCHECK_VERSION:?not loaded — caller must source tool-versions.env}"
+        : "${SHELLCHECK_SHA256:?not loaded — caller must source tool-versions.env}"
+        mkdir -p "${{ inputs.bindir }}"
+        ver="${SHELLCHECK_VERSION}"
+        f="shellcheck-v${ver}.linux.x86_64.tar.xz"
+        curl -fsSL -o "$f" "https://github.com/koalaman/shellcheck/releases/download/v${ver}/${f}"
+        echo "${SHELLCHECK_SHA256}  ${f}" | sha256sum -c -
+        tar -xJf "$f"
+        install -m755 "shellcheck-v${ver}/shellcheck" "${{ inputs.bindir }}/shellcheck"
+        rm -rf "shellcheck-v${ver}" "$f"
+
+    - name: actionlint (pinned + verified)
+      if: inputs.actionlint == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Skip only on OUR verified bindir binary (cache restore), not any PATH match.
+        [ -x "${{ inputs.bindir }}/actionlint" ] && { echo "actionlint already verified in bindir (cached)"; exit 0; }
+        : "${ACTIONLINT_VERSION:?not loaded — caller must source tool-versions.env}"
+        : "${ACTIONLINT_SHA256:?not loaded — caller must source tool-versions.env}"
+        mkdir -p "${{ inputs.bindir }}"
+        ver="${ACTIONLINT_VERSION}"
+        f="actionlint_${ver}_linux_amd64.tar.gz"
+        curl -fsSL -o "$f" "https://github.com/rhysd/actionlint/releases/download/v${ver}/${f}"
+        echo "${ACTIONLINT_SHA256}  ${f}" | sha256sum -c -
+        tar -xzf "$f" actionlint
+        install -m755 actionlint "${{ inputs.bindir }}/actionlint"
+        rm -f actionlint "$f"
+
+    - name: gitleaks (pinned + verified)
+      if: inputs.gitleaks == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Skip only on OUR verified bindir binary (cache restore), not any PATH match.
+        [ -x "${{ inputs.bindir }}/gitleaks" ] && { echo "gitleaks already verified in bindir (cached)"; exit 0; }
+        : "${GITLEAKS_VERSION:?not loaded — caller must source tool-versions.env}"
+        : "${GITLEAKS_SHA256:?not loaded — caller must source tool-versions.env}"
+        mkdir -p "${{ inputs.bindir }}"
+        ver="${GITLEAKS_VERSION}"
+        f="gitleaks_${ver}_linux_x64.tar.gz"
+        curl -fsSL -o "$f" "https://github.com/gitleaks/gitleaks/releases/download/v${ver}/${f}"
+        echo "${GITLEAKS_SHA256}  ${f}" | sha256sum -c -
+        tar -xzf "$f" gitleaks
+        install -m755 gitleaks "${{ inputs.bindir }}/gitleaks"
+        rm -f gitleaks "$f"
+
+    - name: shfmt (pinned + verified)
+      if: inputs.shfmt == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Skip only on OUR verified bindir binary (cache restore), not any PATH match.
+        [ -x "${{ inputs.bindir }}/shfmt" ] && { echo "shfmt already verified in bindir (cached)"; exit 0; }
+        : "${SHFMT_VERSION:?not loaded — caller must source tool-versions.env}"
+        : "${SHFMT_SHA256:?not loaded — caller must source tool-versions.env}"
+        mkdir -p "${{ inputs.bindir }}"
+        ver="${SHFMT_VERSION}"
+        curl -fsSL -o shfmt "https://github.com/mvdan/sh/releases/download/v${ver}/shfmt_v${ver}_linux_amd64"
+        echo "${SHFMT_SHA256}  shfmt" | sha256sum -c -
+        install -m755 shfmt "${{ inputs.bindir }}/shfmt"
+        rm -f shfmt
+
+    - name: neovim (pinned + verified)
+      if: inputs.neovim == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Skip only when OUR verified nvim is already unpacked (a re-run), not on any
+        # preinstalled `nvim` on PATH — the symlink below puts ours ahead regardless.
+        [ -x /opt/nvim-linux-x86_64/bin/nvim ] && { echo "nvim already verified-installed"; exit 0; }
+        : "${NVIM_VERSION:?not loaded — caller must source tool-versions.env}"
+        : "${NVIM_SHA256:?not loaded — caller must source tool-versions.env}"
+        ver="${NVIM_VERSION}"
+        f="nvim-linux-x86_64.tar.gz"
+        curl -fsSL -o "$f" "https://github.com/neovim/neovim/releases/download/v${ver}/${f}"
+        echo "${NVIM_SHA256}  ${f}" | sha256sum -c -
+        sudo tar -xzf "$f" -C /opt
+        sudo ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+        rm -f "$f"

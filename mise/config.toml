@@ -1,0 +1,54 @@
+# core/mise/config.toml  → symlinked to ~/.config/mise/config.toml
+# ──────────────────────────────────────────────────────────────────────────────
+# Global runtime versions, managed by mise (https://mise.jdx.dev). Portable —
+# identical on every machine. Per-project versions live in a project-local
+# mise.toml / legacy .nvmrc/.python-version and override these automatically.
+#
+#   mise install              # install everything declared here
+#   mise use -g node@22       # change a global (rewrites this file)
+#   mise ls                   # show installed + active versions
+# ──────────────────────────────────────────────────────────────────────────────
+
+[tools]
+node   = "lts"
+pnpm   = "latest"     # faster than npm/yarn, less disk; npm/npx still ship with node
+python = "3.12"       # many pentest tools (impacket, bloodhound-python) want a real Python
+ruby   = "3.3"        # evil-winrm, some Metasploit modules, web tooling
+go     = "latest"     # lots of security tooling is `go install`-able; enables gopls
+rust   = "stable"     # see distro note below
+java   = "temurin-21" # Burp Suite, BloodHound legacy — recent LTS
+lua    = "5.4"        # handy when hacking on the Neovim config
+
+# Distro note: on boxes where bootstrap installs `cargo` via the package manager
+# (e.g. Fedora, for building yazi/dust), mise's `rust` here will take PATH
+# precedence — which is fine (mise's toolchain is newer). If you'd rather the
+# distro own Rust on a given machine, drop the `rust` line in a local override.
+
+[settings]
+auto_install = false        # explicit installs only; don't fetch on directory entry
+legacy_version_file = true  # honor .nvmrc/.ruby-version/.python-version so repos "just work"
+experimental = true         # native shims (faster than the shell wrapper)
+quiet = false
+# B3 — hermetic tool resolution. The [tools] versions above are deliberately FLOATING
+# (lts/latest/stable) so the declarations stay readable, but that means two boxes
+# provisioned a month apart can land on different runtimes. lockfile=true makes mise
+# record the EXACT resolved versions + checksums in a committed mise.lock (next to this
+# config), so `mise install` reproduces the same toolchain everywhere — the same idea as
+# Cargo.lock / package-lock.json. Generate/refresh it on a real box: `mise install`
+# (or `mise lock`) writes mise.lock; commit it. Until it's committed mise resolves
+# floating as before, so this is a safe no-op until the lock lands.
+lockfile = true
+
+# NB: mise's GLOBAL-ONLY settings (paranoid, trusted_config_paths, …) are intentionally
+# NOT set here. This file is symlinked to ~/.config/mise/config.toml (global), but mise
+# ALSO auto-loads it as a PROJECT config whenever you're inside a dotfiles repo (it treats
+# mise/config.toml as a project path) — and a global-only setting in a non-global config is
+# ignored with a WARN on every `cd`. (`paranoid` was just mise's default of false anyway.)
+# To trust extra config dirs, set the ENV var in your machine-local shell config — mise
+# reads it globally and it raises no warning:
+#   ~/.config/zsh/local.zsh →  export MISE_TRUSTED_CONFIG_PATHS="$HOME/code"
+# (or run `mise trust` inside a given project).
+
+[alias]
+# Custom shorthand plugin sources, e.g.:
+# node-alpha = "node@nightly"

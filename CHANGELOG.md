@@ -1,0 +1,565 @@
+# Changelog
+
+All notable changes to **dotfiles-core** are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+Core is the single source of truth vendored into seven OS repos via
+`git subtree pull --prefix=core <core-remote> main --squash` (see `scripts/sync-core.sh`).
+Every entry below is therefore a change those repos receive on their next sync —
+this file is the human-readable record of _what_ a sync will bring, complementing
+the SHA that `scripts/sync-core.sh` now prints. To cut a release, move the
+`[Unreleased]` items under a new `## [vX.Y.Z] - YYYY-MM-DD` heading and tag the
+commit (`git tag -a vX.Y.Z -m vX.Y.Z`).
+
+## [Unreleased]
+
+### Changed
+
+- **`/freshness-triage` now covers the CLI tool pins.** The routine reviewed zsh/nvim/
+  actions bumps but said nothing about `scripts/tool-versions.env` — the one bump class
+  that also needs `make update-tool-checksums` to refresh its `*_SHA256`. Added a section
+  so a `*_VERSION` change without its checksum is flagged **Hold** (the audit only checks
+  the hash is _present_, not correct, so a stale hash otherwise fails late at the action's
+  `sha256sum -c` in CI). Routine-doc only; no code change.
+- **Cross-shell keybindings aligned (PARITY.md decisions resolved).** The four open
+  parity decisions are settled and implemented on both shells: **Ctrl+T** = file picker
+  (zsh moved off `Ctrl+F`), **Ctrl+E** = atuin TUI / **Ctrl+R** = quick fzf history,
+  **Ctrl+G** = jump-to-session everywhere (zsh sesh; the host gets a psmux sessionizer,
+  with navi demoted from its Ctrl+G widget to the `navi` command), and **Alt+Z** = zoxide
+  jump + `gaf`/`grf`/`grsf` fuzzy git staging ported to pwsh. Core's functional change is
+  the file-picker rebind (`zsh/bindings.zsh`: `Ctrl+F`→`Ctrl+T`), with the announced key
+  updated everywhere it appears (`zsh/fzf.zsh` warning + comments, the `core-help` cheat
+  row in `zsh/functions.zsh`, `tmux/scripts/tmux-cheat.sh`, `README.md`, and the
+  `test-core.sh` assertions); the pwsh half lands in `dotfiles-Windows`. The six rows
+  moved to `aligned` (file-picker, atuin, dir-jump, session-picker, fuzzy-git, cheat) are
+  each enforced by a `scripts/parity-check.sh` needle. `make audit` + `make parity-check` green.
+- **`bootstrap-lib.sh` gains opt-in dry-run + tallies** (`lib/bootstrap-lib.sh`) — the
+  shared provisioning scaffold now honors `BLIB_DRY=1`: `blib_link` / `blib_seed` /
+  `blib_link_core` / `blib_write_zshrc_loader` / `blib_set_login_shell` PRINT what they
+  would do and change nothing — every mutation (symlink, backup, seed copy, chmod, the tpm
+  clone, the ssh perms, the `.zshrc` write, the `chsh`) is guarded — so an OS bootstrap's
+  `--dry-run` can preview the whole plan instead of each repo hand-rolling it. `blib_link`
+  also gained an idempotent already-correct-link no-op and a missing-source skip; the two
+  inline git/sesh seed blocks are unified into a new `blib_seed`; `BLIB_*` counters +
+  `blib_wire_summary` give a "N linked · M seeded · K backed up" footer. **Backward
+  compatible** — `BLIB_DRY` defaults off and the non-dry path is byte-for-byte the prior
+  behaviour, so the already-adopted Fedora/Arch/Alpine/openSUSE/Gentoo/Kali bootstraps are
+  unaffected. This unblocks MacBook adopting the shared scaffold without losing its
+  `--dry-run`. Verified: dry run creates zero files; a real run wires all 25 links + 2
+  seeds; a re-run backs up nothing.
+- **De-forked `update.zsh`'s per-shell path** (`zsh/update.zsh`) — the throttle check
+  and the upgrade nudge ran `date +%s` once and `sed -n Np` twice on **every**
+  interactive shell, three subprocess spawns (~1.7 ms each, measured) on the critical
+  path before the first prompt — the exact fork tax this stack's cached inits + deferred
+  plugins exist to avoid. Replaced with zsh builtins: `$EPOCHSECONDS` (a `zsh/datetime`
+  param) for the clock and `$(<file)` + `${(f)…}` for the two-line cache read, removing
+  all three forks (~5 ms off a warm shell) with byte-identical behaviour and a `date`
+  fallback if the module is unavailable. Profiled with `make profile`; the `_pkgup_*`
+  parse + nudge unit tests are unchanged and green. (A profile-led pivot: caching
+  `tools.zsh`'s `command -v` probes — only ~1.8 ms total, and a stale cache could hide a
+  newly-installed tool — was measured and rejected as not worth the footgun.)
+- **Dropped `dotfiles-Debian` from the documented fleet.** The Debian OS-native
+  repo was only ever planned, never created, and is no longer being pursued — so
+  the fleet docs that named it as a real target were ahead of reality. Removed it
+  from the OS-native repo lists (`README.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+  `SECURITY.md`, `PORTING-MATRIX.md`), reframed it in `scripts/os-repos.txt` from
+  "planned" to a documented permanent absence (so it is not re-added), and dropped
+  it from the `claude-routines` fleet-clone loop. This also reconciles the
+  "nine-repo system" / "seven vendoring OS repos" counts, which the phantom Debian
+  entry had thrown off by one. Debian _distro-family_ facts (the `bat`→`batcat` /
+  `fd`→`fdfind` renames, Kali being Debian-family) are unaffected and retained.
+- **Hardened the Track B module selector** (`lib/bootstrap-lib.sh`) — two fixes from
+  review of the fan-out PRs. `blib_select` now **fails fast on an unknown flag** (a
+  `*)` arm warns + `exit 1` instead of silently falling through without recording a
+  selection, so a caller typo can't make filtering appear to "work" while wiring
+  everything). And `blib_selected_note` now **mirrors `blib_want`'s precedence**: since
+  `--only` is an allowlist that wins when set, a co-present `--skip` is ignored — the
+  note reports a single active mode (`only` when set, otherwise `skip`) rather than
+  appending a misleading `(skipped: …)` suffix that was never applied. **Backward
+  compatible** — the single-selector and no-selector paths are unchanged. `test-core.sh`
+  Section G gains an unknown-flag rejection case, a `--skip`/both-set precedence check on
+  the note, and a `BLIB_MODULES` drift guard pinning the production group list to the
+  tested oracle. `make audit` green.
+
+### Added
+
+- **`bootstrap-lib.sh` gains `--only`/`--skip` module selection** (`lib/bootstrap-lib.sh`)
+  — the shared scaffold can now wire a SUBSET of the Core groups: `zsh nvim tmux git
+  prompt tools`. New `blib_select <--only|--skip> <csv>` (validates a comma-separated
+  selector — empty / leading / trailing / doubled commas and unknown groups all abort),
+  `blib_want <group>` (consulted by `blib_link_core`, `blib_link_os_layer`,
+  `blib_write_zshrc_loader`, `blib_set_login_shell`), and `blib_selected_note` for a
+  summary suffix. Each OS overlay rides with its Core group (`os.zsh`→zsh, `os.conf`→tmux,
+  `os.gitconfig`→git). This is the Core half of the dotfiles-web Bootstrap Command
+  Generator's "Track B"; each OS `bootstrap.sh` just routes its `--only`/`--skip` here.
+  **Backward compatible** — with neither selector set everything is wired exactly as
+  before, so every existing caller is unaffected. `make audit` green.
+- **`gsync` upstream-sync shortcut** (`.bin/sync-upstream.sh`, `zsh/aliases.zsh`) —
+  a one-word alias that `git subtree push`es an OS repo's vendored `core/` subtree
+  back upstream to dotfiles-core (`main`) — the prefix that matches the registered
+  `core/` ⇄ root@main subtree boundary. The runner refuses to run unless a `core/`
+  subtree is present (so it no-ops in dotfiles-core, the source of truth) and bails
+  on a dirty working tree. The alias resolves the script relative to the sourced
+  module via the `${(%):-%x}` trick (the same one `maint.zsh` uses), so the
+  shortcut survives the `core/` subtree vendoring without putting `.bin` on `PATH`.
+  Registered in `core.manifest`.
+- **`ARCHITECTURE.md`** — a strategic architecture overview: the three-layer
+  model and its boundary test, the full fleet map (which repos vendor `core/`
+  and which don't), the one-directional subtree vendoring topology, the
+  load-bearing zsh load order, the audit gate, and the rationale for the model.
+  Sits above `README.md`/`CONTRIBUTING.md` (which stay operational) and
+  cross-references them. Added to the audit's repo-meta allowlist; it is docs,
+  not shipped Core.
+- **`parity-check` gate** (`scripts/parity-check.sh`, `make parity-check`, weekly
+  `.github/workflows/parity-check.yml`) — mechanises the `aligned` rows of `PARITY.md`:
+  asserts a distinctive needle (starship/zoxide/atuin init, the fzf tokyonight palette,
+  the `fd` default command) is present in **both** a zsh source and the pwsh source,
+  failing when one side drifts. Reads pwsh from a sibling `dotfiles-Windows` checkout
+  (skipped with a notice if absent, unless `--strict`; the workflow clones it and runs
+  `--strict`), the same cross-repo pattern as `fleet-drift.sh`. The fzf-palette row is
+  the regression guard for the parity fix just shipped; keybinding rows join the checker
+  as each open decision is made. `make audit` green.
+- **`PARITY.md` — the cross-shell parity contract** — the source of truth for what
+  "the same on zsh and PowerShell" means, mapping every prompt/alias/keybinding/
+  function capability to `aligned` (must stay in step), `deliberate` (intentional
+  platform difference), or `gap` (open item). Makes the WSL-zsh ↔ Windows-pwsh
+  divergences a documented decision instead of silent drift, and names the open
+  decisions (the `Ctrl+G` sesh-vs-navi collision, the file-picker key, the atuin
+  key, the `gaf`/`grf`/`grsf` + `Alt+Z` ports). Paired with a same-change fix that
+  brings the **fzf tokyonight-storm palette to pwsh** (`dotfiles-Windows`
+  `powershell/core/10-tools.ps1`), which previously fell back to terminal-default
+  colours — the first `aligned` row closed. A future `scripts/parity-check.sh` can
+  mechanise the `aligned` rows the way `fleet-drift.sh` mechanised provenance.
+- **`core/` edit guard** (`blib_install_core_guard` in `lib/bootstrap-lib.sh`, wired into
+  `scripts/sync-core.sh`) — a local `pre-commit` hook that refuses commits touching the
+  vendored `core/` subtree, turning the prose rule "never hand-edit `core/`" into a
+  mechanical block. Motivated by a real incident: an upstream "Lazy lock update" edited a
+  vendored `core/nvim/lazy-lock.json` directly, drifting it from canonical Core. `sync-core.sh`
+  now (re)installs the hook into every repo it fans out to (so the protection lands on the
+  maintainer's machine, where the edit happens) and exempts its own legitimate subtree
+  writes via `DOTFILES_ALLOW_CORE_EDIT=1`; a one-off bypass is the standard
+  `git commit --no-verify`. Idempotent and non-destructive — it never clobbers a
+  pre-existing unrelated `pre-commit` hook. Covered by hermetic git tests in
+  `scripts/test-core.sh`. (Wiring it into each OS `bootstrap.sh` for fresh clones rides
+  along with the pending `bootstrap-lib.sh` adoption.)
+- **Fleet-drift check** (`scripts/fleet-drift.sh`, `make fleet-drift`, and a weekly
+  `.github/workflows/fleet-drift.yml`) — reads every OS repo's `core.lock`
+  (`core_sha=…`) plus `dotfiles-Windows`'s `nvim/.core-ref` (`commit = …`) and reports
+  which repos lag Core's tip (BEHIND/AHEAD/DIVERGED, quantified in commits). Closes the
+  gap where the per-repo provenance markers existed but nothing compared them, so a repo
+  could silently sit on a stale Core (how the nvim lockfile drifted). Read-only — the
+  fix is a human running `make sync`; a not-checked-out repo is skipped unless `--strict`.
+  The reference commit is `--ref`/`$CORE_REF_SHA` → `origin/main` → `main` → `HEAD`.
+  Fleet list is the same `scripts/os-repos.txt` `sync-core.sh` reads; the scheduled
+  workflow anonymously shallow-clones the public repos and fails red on drift.
+- **`.github/workflows/bootstrap-test.yml`** — a _reusable_ (`workflow_call`)
+  bootstrap integration test, authored once here and called by a thin ~10-line
+  stub in each OS repo, so the OS repos gain CI without each carrying a duplicated
+  copy of the logic (the same fan-out the Core layer exists to kill). Two jobs:
+  `lint` runs `shellcheck -x` + `bash -n` + `--help` on `bootstrap.sh` (the OS
+  repos previously had no CI at all, so this is their first gate); `links-only`
+  runs `bootstrap.sh --links-only` inside the target distro's container and
+  asserts the symlink graph + the generated `~/.zshrc` (it pre-seeds the tpm dir
+  to skip the network clone, mirroring `test-core.sh`'s offline technique, and
+  leaves the actual module load — already covered hermetically by `test-core.sh` —
+  alone). Callers pass `image`/`prep`/`offensive`; Kali sets `offensive: true`.
+- **`lib/bootstrap-lib.sh`** — a vendored BASH provisioning scaffold that ends the
+  per-repo bootstrap fan-out. Roughly half of each OS bootstrap.sh was the _same_
+  code — `link()`, `read_pkgs()`, WSL detection, the Core-symlink loop, the `.zshrc`
+  loader heredoc, the default-login-shell logic — copy-pasted and then independently
+  reformatted, so a fix had to be made in every repo by hand (the exact N-way drift
+  Core exists to kill, leaking through the one file that can't be vendored). The
+  shared half now lives here as `blib_*` helpers (`blib_link`, `blib_read_pkgs`,
+  `blib_is_wsl`, `blib_link_core`, `blib_link_os_layer`, `blib_write_zshrc_loader`,
+  `blib_set_login_shell`), sourced by each bootstrap.sh alongside `lib/ux.sh`. The
+  loader writer takes the module list as an argument, so a role repo (Kali) injects
+  its `offensive` stage; the login-shell helper takes `$BLIB_SU` so a doas-only or
+  root box works. The `core/`-presence check stays inline per bootstrap (you cannot
+  source a lib out of `core/` before confirming `core/` exists). Listed in
+  `core.manifest`; sourced (non-exec) like `lib/ux.sh`. Adopting it in each OS
+  bootstrap.sh is a follow-up that lands after this is synced out.
+- **`pullall [dir]` shell function** (`zsh/functions.zsh`) — fast-update every git
+  repo under a parent directory in parallel: prunes deleted remote branches,
+  stashes uncommitted tracked changes, switches to each repo's auto-detected trunk
+  (main/master/trunk/… via `origin/HEAD`, not a hard-coded `main`), fast-forwards
+  it, pops the stash back (reporting a pop conflict instead of swallowing it), then
+  prints a summary card. The parent directory is configurable (argument →
+  `$PULLALL_DIR` → CWD) so Core stays machine-agnostic; parallelism via
+  `xargs -P` (`$PULLALL_JOBS`, default 10). Colour is TTY/`NO_COLOR`-aware and
+  repo paths are passed positionally (no shell injection from odd names). Ships
+  with a `_pullall` completion, a `core-help` row, and behavioural tests.
+- **`dotfiles-Defense-PLAN.md`** — a forward-looking architecture note plus a
+  complete, ready-to-instantiate skeleton for a future `dotfiles-Defense` repo
+  (the defensive/blue Role layer that mirrors `dotfiles-Kali`). Records the
+  red/blue split decision, the trigger for standing the repo up, the layer-table
+  identity, and every scaffold file verbatim (README, CLAUDE.md, bootstrap,
+  `defense.zsh`, methodology, gitignore, compose stub, templates) so the repo can
+  be `git init`-ed when the trigger is met. Added to the audit's repo-meta
+  allowlist; it is planning, not shipped Core.
+- **Claude Code project memory + maintenance routines** (`CLAUDE.md`, `.claude/`) —
+  a root `CLAUDE.md` encoding the three-layer model, the "is it Core?" test, the
+  manifest contract, and the load order so every Claude session reasons from the
+  real rules. Three on-demand slash commands automate the judgment-heavy chores the
+  audit can't: `/doc-audit` (prose-vs-reality drift across the fleet, via the
+  `doc-consistency` subagent), `/tool-scout` (research the modern-CLI stack for
+  tools worth adopting, via the `tool-scout` subagent), and `/freshness-triage`
+  (review dependency-bump PRs against upstream changelogs). All report-first; none
+  vendor out without a green `make audit`. `CLAUDE.md` added to the audit's
+  repo-meta allowlist (`.claude/` was already a prefix).
+- **Scheduled maintenance bots** (`.github/workflows/claude-routines.yml`) — run the
+  `/doc-audit` and `/tool-scout` routines headless on a weekly cron (and on demand),
+  filing findings as a deduplicated GitHub issue. The Claude Code CLI is installed
+  from npm (pinned via `CLAUDE_CODE_VERSION` in `scripts/tool-versions.env`) — no
+  third-party action, mirroring `freshness.yml`. Auth is a Claude subscription token
+  (`CLAUDE_CODE_OAUTH_TOKEN`, from `claude setup-token`); inert until that secret is
+  set (the workflow no-ops with a warning otherwise).
+- **`make release-notes` + `cliff.toml`** — git-cliff config + a Makefile target that
+  drafts a GitHub Release body from Conventional Commits since the last release commit.
+  Scoped dev-tooling (audit allowlist, not `core.manifest`, zero runtime cost); it does
+  **not** generate `CHANGELOG.md` (that stays hand-curated and is promoted by
+  `scripts/release.sh`). Surfaced by `/tool-scout` (issue #44).
+- **`aliases.md`** is now surfaced in the changelog — the cross-fleet aliases cheat
+  sheet (Core + per-OS + offensive layers), previously shipped without an entry.
+
+### Fixed
+
+- **Startup nudges no longer execute under a substitution prompt** (`zsh/update.zsh`).
+  `_pkgup_notice` ("N updates available — run \`up\` to apply") and `_core_welcome`
+  ("dotfiles Core loaded — run \`core\`…") rendered their hints with `print -P` and wrapped
+  the verb in **backticks**. Under `setopt prompt_subst` — which starship and any
+  substitution prompt enable — `print -P` performs command substitution, so the backtick'd
+  word was _executed_ rather than printed: the update nudge fires from a precmd hook before
+  `up()` is defined, surfacing as `command not found: up` on every package-manager box (and,
+  once defined, silently triggering a privileged upgrade). Both hints now use single quotes
+  (`'up'` / `'core'`), which are literal under prompt expansion; the `NO_COLOR` branch already
+  used the safe `print -r`. Surfaced by a `make sync` audit failing on a starship MacBook. A
+  new `test-core.sh` regression seeds a cached count under `prompt_subst` with an `up()`
+  sentinel and asserts the nudge mentions `up` but never runs it.
+- **`dotfiles-Defense-PLAN.md` scaffold: `bootstrap.sh` `--links-only` was dead.** The
+  reproduced `bootstrap.sh` set `LINKS_ONLY` but never read it, so `--links-only` still ran
+  the host-tool/docker probe (and shellcheck flagged the unused var). Guard the probe with
+  `(( DO_CHECK && ! LINKS_ONLY ))` so `--links-only` truly just wires symlinks, and rewrite
+  the `(( missing == 0 )) && ok || warn` line as if/then/else. The scaffold is now
+  shellcheck-clean and was exercised end-to-end in a sandbox (`--links-only` wires Core +
+  the defense stage); the "validated" note now says so. Planning doc only (allowlisted
+  repo-meta) — nothing shipped/vendored.
+- **`gsync` runner + core-guard installer hardening** (review follow-up to the
+  fan-out PRs). `.bin/sync-upstream.sh`: normalize to the git toplevel first so
+  `gsync` works from any subdirectory (it is an absolute-path runner); use
+  `git status --porcelain` for the clean-tree check so untracked files also block
+  (`git diff-index HEAD` missed them); and reword the failure hint to be
+  auth-agnostic (the remote is HTTPS, not SSH) and point at the right re-pull
+  command for an OS repo. `zsh/aliases.zsh`: `gsync` is now a wrapper function,
+  not an alias, so a dotfiles path containing whitespace stays one word and args
+  pass through — with a matching `_gsync` completion and `core-help` row.
+  `lib/bootstrap-lib.sh` `blib_install_core_guard`: detect the git work tree and
+  hooks dir via `git rev-parse` (so worktrees/submodules, where `.git` is a file,
+  get the guard too), skip with a warning when `core.hooksPath` is set (installing
+  into the ignored `.git/hooks` was false protection), and return non-zero instead
+  of silently succeeding if the hooks dir can't be created. New hermetic test
+  covers the `core.hooksPath` skip.
+- **`sync-core.sh` pre-fan-out audit no longer false-fails on the core-guard test.**
+  The script `export`s `DOTFILES_ALLOW_CORE_EDIT=1` for its own legitimate subtree
+  commits, but that exemption was still in the environment when it ran the
+  pre-fan-out `audit-core.sh` — whose behavioral suite commits to a throwaway
+  `core/` and asserts the guard hook BLOCKS it. The inherited exemption made that
+  assertion fail, reding an otherwise-green tree and forcing `SYNC_SKIP_AUDIT=1`.
+  The audit now runs via `env -u DOTFILES_ALLOW_CORE_EDIT` (it never writes to
+  `core/`, so it needs no exemption); the fan-out commits keep theirs.
+- **`bootstrap-lib.sh` now wires three Core files it silently dropped.**
+  `blib_link_core` linked starship/nvim/mise/git/tmux/clip but omitted
+  `core/lazygit/config.yml` (→ `~/.config/lazygit/config.yml`), `core/vim/vimrc`
+  (→ `~/.vimrc`), and the `core/sesh/sesh.toml.example` seed
+  (→ `~/.config/sesh/sesh.toml`) — three files that are in `core.manifest` (the
+  manifest comments even spell out their destinations) yet reached no machine,
+  inherited from the per-repo bootstraps this library consolidated. lazygit + vim
+  symlink like starship; sesh is seeded (copied, never relinked) like the git
+  identity file. The matching `bootstrap-test.yml` assertions for these three were
+  briefly **deferred** — that reusable test is referenced `@main` by every adopter, so
+  it can only assert what each adopter's CURRENT vendored `core/` produces, and asserting
+  the wiring before `make sync` propagated it would have red-flagged Fedora/Kali. They are
+  **now re-added**: every adopter's `core.lock` is at a Core that includes the wiring, so
+  the `@main` test asserts lazygit/`~/.vimrc`/seeded-sesh again without false reds.
+- **`freshness.yml` opens its pin-bump PRs against the default branch**, not the
+  dispatched ref (`GITHUB_REF_NAME`), and uses a ref-independent concurrency group —
+  so a manual run from a feature branch can't target the wrong base or race the cron.
+- **`aliases.md`** — corrected the `myip` expansion (it redirects stderr:
+  `curl -fsS https://ifconfig.me 2>/dev/null && echo`) and repo-qualified the
+  cross-repo source paths in the header so they don't read as broken local links.
+- **`doc-consistency` subagent** — aligned its system description with the canonical
+  nine-repo, three-layer (Core → OS-native → Role) wording.
+- **`audit-core.sh`** — clarified the META-allowlist comments: those files are "not
+  shipped Core" (absent from `core.manifest`), not "never vendored" (the subtree copy
+  carries them physically).
+- **Doc drift caught by `/doc-audit`** — corrected "vendored into/fans out to _nine_
+  OS repos" → _eight_ (Windows vendors no `core/`) in `CHANGELOG.md` + `CONTRIBUTING.md`;
+  added the manifest-listed `zsh/loader.zsh` and `lazygit/config.yml` to the README
+  Layout tree; completed the README tmux-scripts list (added `tmux-battery`/`tmux-cheat`);
+  and attributed the `cheat` alias to `functions.zsh` (not `aliases.zsh`) in `aliases.md`.
+
+### Security
+
+- **CI tool downloads are now SHA-256 verified.** The `setup-core-tools` composite
+  action previously fetched its pinned gate binaries (shellcheck, actionlint, gitleaks,
+  neovim) with `curl … | tar` and **no integrity check** — a tampered or MITM'd release
+  asset would have executed inside the gate. Each install now downloads to a file,
+  verifies it against a pinned hash from `scripts/tool-versions.env`, and only then
+  installs; a mismatch fails the build. `shfmt` was folded into the action (it was the
+  last tool still installed via inline `curl` in the OS-repo lint workflows), so one
+  verified definition now covers every downloaded gate tool.
+- **`scripts/tool-versions.env`** gained a `*_SHA256` per downloaded tool (the single
+  source the action reads alongside each `*_VERSION`), plus `SHFMT_VERSION`.
+- **`scripts/audit-core.sh`** gained a "tool download integrity" section that fails the
+  audit if any pinned `*_VERSION` lacks a 64-hex `*_SHA256` — a version can no longer be
+  bumped without refreshing its checksum.
+- **`scripts/update-tool-checksums.sh`** (new) recomputes the pinned hashes from the
+  exact assets the action downloads, so a version bump is a one-command checksum refresh.
+- **`setup-core-tools` skips only on its OWN verified binary, not any `command -v` match.**
+  The install steps short-circuited on `command -v <tool>`, which also matches a binary
+  preinstalled on the runner (`ubuntu-latest` ships shellcheck) — so the verified install
+  was silently skipped and the gate ran the unpinned, unverified system shellcheck. Each
+  step now skips only when the binary is already in the action's own `bindir` (a genuine
+  cache restore); the caller prepends `bindir` to `PATH`, so the verified binary always
+  shadows any preinstalled one. Restores the integrity + pinning guarantee for shellcheck.
+
+## [v1.2.0] - 2026-06-21
+
+### Added
+
+- **fzf-assisted git staging** (`zsh/git.zsh`) — `gaf` / `grf` / `grsf`, fuzzy
+  multi-select counterparts to `git add` / `restore` / `restore --staged`. Each
+  guards on `fzf` like the `fzf.zsh` zle widgets, depends only on git + fzf (both
+  in the Core stack), and NUL-pipes paths so filenames with spaces survive `xargs`.
+- **`vim/vimrc`** — a plugin-free, self-contained vim fallback for boxes where only
+  stock vim exists (minimal containers, rescue shells, freshly-SSH'd servers). netrw
+  as the file browser, no network, keybindings echoing the Neovim config. The OS
+  bootstrap symlinks it to `~/.vimrc`.
+
+### Changed
+
+- **Adaptive eslint linting** (`nvim/lua/gerrrt/plugins/nvim-lint.lua`) — the eslint
+  family (js/ts/jsx/tsx/svelte/vue) now lints only when an eslint config is found
+  upward from the buffer, mirroring the existing SC1071/ruff guards. Prevents
+  `eslint_d`'s hard error from surfacing as a phantom diagnostic in projects with no
+  eslint config. Non-eslint linters still run unconditionally.
+
+## [v1.1.0] - 2026-06-19
+
+## [v1.0.0] - 2026-06-18
+
+### Added
+
+- **lazygit theme** (`lazygit/config.yml`) — a tokyonight-storm theme matching
+  `starship.toml`, the tmux bar, and `zsh/fzf.zsh`, so lazygit (reached via the `lg`
+  alias and the `prefix + g` tmux popup) reads as one palette with the rest of the
+  stack. Bootstrap symlinks it to `~/.config/lazygit/config.yml`.
+- **`genpw [length]`** — portable random-password generator (`zsh/functions.zsh`):
+  prefers `openssl`, falls back to `/dev/urandom` so it works on a bare rescue shell.
+  Ships with its completion (`zsh/completions/_genpw`) and a `core-help` entry.
+- **fzf tokyonight palette** — `FZF_DEFAULT_OPTS` (`zsh/fzf.zsh`) now sets an explicit
+  tokyonight-storm `--color` set instead of inheriting the terminal palette, keeping
+  fzf on-theme even over SSH into an unthemed box.
+- Audit **`--strict`** now fails only on gates skipped because their TOOL is absent (an
+  out-of-scope skip stays intentional), so CI runs it on the Linux leg — closing the last
+  "green because a linter silently failed to install" gap. CI also installs `python3-yaml`
+  so the YAML-parse gate is honest under `--strict`.
+- **Core⇄OS boundary** audit gate: portable `zsh/*.zsh` modules may carry no OS-absolute
+  paths (`/opt/homebrew`, `~/Library`, …), mechanically enforcing the README's "if it
+  changes with the OS it isn't Core" rule. `zsh/maint.zsh` (the OS-switched scheduler
+  surface) is the documented exception.
+- **`core.version` ↔ `CHANGELOG`** coherence gate: a prerelease stamp must keep an
+  `[Unreleased]` section open; a release stamp must have a matching `## [vX.Y.Z]` heading.
+- Behavioral coverage for `git.zsh` (`git_main_branch`/`git_current_branch` trunk +
+  detached-HEAD resolution) and for `_pkgup_count`/`_pkgup_list` parsing on
+  apk/dnf/zypper/pacman — previously only apt was exercised.
+- `core-help` now lists the most-used **git aliases** (the OMZ-style set in `git.zsh`),
+  so they are discoverable from the cheat sheet.
+- `core.version` — a human-readable SemVer stamp vendored into every OS repo, plus a
+  `core-version` verb that reads it, so you can tell WHICH Core a given OS repo carries
+  from inside it (the subtree squash records the commit; this records the version).
+  `scripts/sync-core.sh` prints it on fan-out and the audit asserts it is well-formed.
+- `core-doctor` — the shell counterpart to nvim's `:checkhealth gerrrt`: a scannable
+  report of which modern-CLI tools Core detected on this box and which integrations are
+  live, including the RESOLVED binary names (`fd`/`fdfind`, `bat`/`batcat`) and the
+  detected package manager. Read-only.
+- `up -n`/`--dry-run` — list the packages that WOULD upgrade and exit, touching nothing
+  (the non-destructive inspect the count-only nudge didn't offer).
+- `make audit-changed` (`audit-core.sh --changed`) — scope the audit to what your local
+  git diff touches, via the SAME `scripts/ci-classify.sh` CI uses; fails safe to the
+  full run when the diff can't be resolved.
+- First-party completions for `fif`, `fbr`, `core-version`, and `core-doctor`, and a
+  `core.version`/`up --dry-run`-aware `_up`; the completion-parity test now covers them.
+- `.shellcheckrc` — repo-wide ShellCheck config (`external-sources`, `source-path`,
+  `shell=bash`) so author-time, CI, and editor lint identically.
+- `zsh/ui.zsh` — shared terminal-UX primitives (`_core_err`/`_core_warn`/`_core_ok`/
+  `_core_hint`/`_core_usage`/`_core_confirm`/`_core_spin`), gum-aware with a plain
+  fallback on every helper. Loads right after `tools` in the canonical chain and is
+  adopted across `functions.zsh`, `op.zsh`, `update.zsh`, and `plugins.zsh`, replacing
+  ad-hoc `echo "Usage: …"` lines with one consistent voice (colour only on a TTY,
+  `NO_COLOR` honoured, diagnostics to stderr).
+- `core-help` (alias `cheat`): a grouped, column-aligned cheat sheet of Core's
+  functions, keybindings, and maintenance verbs — the shell counterpart to which-key.
+  Plus a once-per-machine first-run hint pointing at it (`CORE_WELCOME=0` to silence).
+- First-party zsh completions (`zsh/completions/`) for Core's own verbs — `up`,
+  `extract` (archive files only), `mkcd`, `mkbak`, `maint-log`, `openv` — fpath-added
+  by `options.zsh` (symlink-safe; no bootstrap symlink needed). The audit now `zsh -n`s
+  them alongside `zsh/*.zsh`.
+- `scripts/lib/common.sh` — one definition of the colour palette + `pass`/`skip`/`fail`/
+  `hdr`/`have` shared by all five gate scripts (the block had been copy-pasted ×5). A
+  sourced lib, so — like `zsh/*.zsh` — it stays mode 100644; the audit's exec-bit
+  section gained a `scripts/lib/*.sh` arm to assert exactly that.
+- `scripts/tool-versions.env` — single source for the pinned dev-tool versions, read by
+  CI (loaded into `$GITHUB_ENV`), `make setup`, and the audit. `scripts/setup.sh` +
+  `make setup`: a one-command dev bootstrap (pre-commit hooks + version doctor + audit).
+- `actionlint` gate on the workflows: an audit section (graceful skip when absent) plus
+  a pinned CI install — the workflow YAML is now validated, not just parsed.
+- Audit version-consistency section: the `.pre-commit-config.yaml` hook revs are gated
+  to equal `scripts/tool-versions.env`, so a one-sided pin bump fails the audit.
+- Hermetic behavioral tests for `bin/clip` / `bin/clip-paste` (the highest-fan-out
+  runtime artifact — used by zsh, tmux, and nvim): a new section in
+  `scripts/test-core.sh` drives the WSL→macOS→Wayland→X11 detection ladder against a
+  fake `PATH`, asserting the right backend is chosen. Runs even where zsh is absent.
+- Headless Neovim config-load smoke test in `scripts/test-core.sh`: loads the authored
+  config layer and every plugin spec offline (no install), catching luacheck-clean Lua
+  that is nonetheless a broken config. CI ships a pinned `nvim` (`NVIM_VERSION`) so it
+  runs on both userlands instead of skipping.
+- Alpine (musl/busybox) CI leg, run via a bind-mounted container, finally exercising
+  the busybox-coreutils compatibility the scripts have always claimed.
+- `scripts/update-plugins.sh` + `make update-plugins`: deliberately roll the pinned
+  zsh-plugin SHAs to upstream HEAD — the runtime-plugin mirror of `make update-hooks`.
+- Markdown lint gate: `.markdownlint.jsonc` rule config, a `markdownlint` section in
+  `scripts/audit-core.sh` (graceful skip when absent), a `markdownlint-cli2` pre-commit
+  hook, and a pinned CI install step — so the docs (the deliverable on a public
+  showcase repo) are gated like everything else.
+- `scripts/bench-core.sh` gained an optional `CORE_BENCH_BUDGET_MS` budget gate (fails
+  when the canonical-chain startup mean exceeds the budget), plus a non-blocking CI
+  `bench` job that reports the number on every push.
+- `SECURITY.md` and `.github/ISSUE_TEMPLATE/` (bug + feature + config) round out the
+  GitHub community profile; `CONTRIBUTING.md` documents a Conventional Commits
+  convention.
+- Broader behavioral coverage in `scripts/test-core.sh`: `mkbak` byte-identity,
+  `extract` unknown-format rejection, and `extract` round-trips for `.tar.gz`/`.gz`
+  (the latter skip gracefully when `tar`/`gzip` are absent).
+- CI runs the audit on a `[ubuntu-latest, macos-latest]` matrix, gating the macOS
+  (bash 3.2 / BSD userland) target — `dotfiles-MacBook` — alongside Linux.
+- `scripts/audit-core.sh` and the pre-commit config parse-check every tracked TOML and
+  YAML file, catching malformed `starship.toml` / `mise/config.toml` / workflow
+  YAML that is valid text but dead at runtime for every consumer.
+- This `CHANGELOG.md`.
+- `scripts/sync-core.sh` reports the exact dotfiles-core revision (short SHA) each OS
+  repo receives, so a sync is traceable.
+- `scripts/bench-core.sh` + `make bench`: a hermetic hyperfine benchmark of the
+  canonical Core load chain, so startup-perf regressions (the thing tools.zsh's
+  caching and plugins.zsh's deferral exist to prevent) are measurable, not silent.
+- A `command_not_found_handler` (zsh): a mistyped command now gets a Core-voice miss
+  that suggests the nearest Core verb on a near typo (`extarct` → `extract`, via a
+  small built-in Levenshtein) or, failing that, an install line for this box's detected
+  package manager — instead of zsh's terse default. Interactive-only; `CORE_CNF_ENABLED=0`
+  opts out.
+- `make doctor` (`scripts/setup.sh --doctor`): the read-only half of `make setup` —
+  reports each dev tool against its pin with no install and no audit, for quick "is my
+  toolchain aligned with CI?" triage.
+- `core-help <word>` filters the cheat sheet to matching rows (and reports a no-match
+  cleanly), so jumping to one verb beats scanning the whole sheet.
+- `serve` renders the reachable URL as a terminal QR code when `qrencode` is present
+  (scan-to-open from a phone) — graceful skip when it isn't.
+- `scripts/audit-core.sh --strict`: treat any SKIP as a failure (a gate whose tool was
+  absent did not actually run), for release/CI verification where every gate must execute.
+- `ui.zsh` primitives: `_core_errbox` (multi-line what/why/fix error blocks),
+  `_core_suggest`/`_core_lev` (did-you-mean), reused across the runtime helpers.
+
+### Changed
+
+- The `command_not_found_handler` now also weighs this shell's **aliases** when proposing
+  a "did you mean?", so a near miss like `gts`→`gst` is caught, not just the Core verbs.
+- The markdown gate resolves `markdownlint-cli2` via PATH → `npx --no-install` →
+  `node_modules`, so an off-PATH global install runs instead of skipping (the most-skipped
+  gate in remote sessions).
+- `_cache_eval` gained `--salt`; the `atuin`/`carapace` inits fold `ATUIN_NOBIND`/
+  `CARAPACE_BRIDGES` into the cache filename, so flipping that env busts the cache
+  instead of serving a stale init.
+- Higher-friction failures now use the structured `_core_errbox` (headline + why/fix):
+  `up` with no package manager, and `serve` without `python3`.
+- `scripts/setup.sh` provisions `luacheck` via `luarocks` (no clean mise source) and
+  emits precise, actionable install hints — closing the last manual onboarding gap.
+- Defensive confirms on impactful interactive actions: `please` now previews the exact
+  `sudo …` line and confirms before eval'ing it as root (and refuses with no previous
+  command); `up` pre-confirms `Apply updates with <mgr>?` before touching the system
+  (skipped by `-y`); `serve` warns plainly that it binds `0.0.0.0` and exposes the CWD.
+- First-run plugin install shows a spinner on the network-bound `git fetch`/`clone`
+  (gum spin when present, a hand-rolled braille spinner otherwise), guarded so an OS
+  loader that hasn't adopted `ui.zsh` yet still installs plainly.
+- CI is now incremental: a `changes` job classifies the diff and gates the narrow,
+  expensive legs — `nvim`+`luacheck` installs run only when `nvim/` changed, and the
+  Alpine and bench jobs only when the shell layer changed. SAFE DEFAULT: an unresolved
+  diff base or any infra change runs everything, so detection can never hide a check.
+- The startup-perf `bench` CI job is now an enforced regression gate
+  (`CORE_BENCH_BUDGET_MS=120` over 50 warmed runs), not a report-only, continue-on-error
+  step — a gross startup regression now fails the build instead of shipping silently.
+- The pinned linter versions moved out of `ci.yml`'s `env:` block into
+  `scripts/tool-versions.env`; CI loads them via a "Load pinned tool versions" step.
+- Split `bin/` into shipped vs. tooling: `bin/` now holds only what is vendored into
+  the OS repos (`clip`, `clip-paste`); the gate scripts moved to `scripts/`
+  (`audit-core.sh`, `test-core.sh`, `bench-core.sh`, `sync-core.sh`,
+  `update-plugins.sh`). The audit allowlists `scripts/` wholesale, so a new dev tool
+  is covered the moment it lands. No consumer impact — those scripts were never in
+  the manifest, so they were never vendored.
+- `scripts/audit-core.sh` no longer uses the bash-4-only `mapfile`, so the gate itself
+  runs on macOS's stock bash 3.2.
+- The audit summary now NAMES the checks that skipped (tool absent) and labels such a
+  run PARTIAL rather than hiding the gap behind a bare count — several skipped gates
+  (markdownlint, actionlint, gitleaks, luacheck, nvim) are CI-enforced, so a clean local
+  box can still differ from the gate.
+- `core-doctor` now turns its `✗` tools into a copy-pasteable install line for this box's
+  package manager, instead of leaving the reader to look each one up.
+- Spinner (`_core_spin`) shows elapsed time and ends with a still `✓`/`✗` result frame, so
+  a long step reads as progress and finishes with a legible outcome; `extract` routes the
+  quiet unpack formats through it. Unknown-format `extract` errors print a what/why/fix block.
+- `serve`/`up` suggest the nearest valid flag on an unknown option (did-you-mean).
+- De-duplicated the gate scripts: the `_set_scope` area parser, the hermetic plugin-seed
+  list, and the `ci-classify.sh` output reader now live once in `scripts/lib/common.sh`
+  (consumed by `audit-core.sh`, `test-core.sh`, `bench-core.sh`) — they had drift-prone
+  copies. `op.zsh` verbs gained the `emulate -L zsh` every other Core verb uses.
+
+### Security
+
+- Pinned the seven runtime zsh plugins to commit SHAs (`ZPLUGIN_PINS` in
+  `zsh/plugins.zsh`) — the last unpinned link in a toolchain that already pins CI
+  linters, pre-commit hooks, and GitHub Actions. An unpinned `master` clone fanned an
+  upstream breaking change — or a compromised tag — out to all eight machines on the
+  next install; installs now fetch exactly the pinned commit.
+
+### Fixed
+
+- `fbr`'s fzf preview used `{1}`, which on the current-branch row (`* main`) is the
+  literal `*` — so the preview ran `git log *` and broke. It now lists clean branch
+  names (`--format='%(refname:short)'`, `*/HEAD` dropped) and previews `{}`; a remote-only
+  pick strips `origin/` on checkout to create the matching local tracking branch.
+- `mkbak` could prompt or clobber: `cp -i` (from `aliases.zsh`, parsed first) bled into
+  it, so a same-second second backup stopped for a y/n. It now picks the next free `.bak`
+  suffix and copies via `command cp`, staying collision-safe and non-interactive.
+- `_core_confirm`'s gum path defaulted to **Yes** while the `[y/N]` fallback defaulted to
+  No — so the same destructive prompt (`please`/`up`/extract-overwrite) was one-Enter-to
+  confirm under gum. It now passes `gum confirm --default=false`, a consistent safe default.
+- The `_core-help` completion claimed "takes no arguments", but `core-help` accepts a
+  `[filter]`; it now completes that filter with the verbs/sections the cheat sheet knows.
+- `serve` now pre-checks the port is bindable (with `SO_REUSEADDR`, as `http.server`
+  does) and fails in Core's voice instead of letting a taken port surface a Python traceback.
+- `diff` was unconditionally aliased to `diff --color=auto`, which BSD/macOS `diff` (the
+  dotfiles-MacBook target) does not support — every `diff` invocation would error there.
+  The alias is now applied only after a feature-probe confirms this box's `diff` accepts it.
+- fzf / fzf-tab previews hardcoded `bat`/`eza`, so every preview pane printed
+  "command not found" on Debian/Ubuntu (bat ships as `batcat`) and on any box without
+  eza. Previews now resolve `$BAT_BIN` with a `cat`/`ls` fallback, and a new audit
+  section (`fzf preview binary resolution`) locks it so the regression can't recur.
+- `fif`, `fbr`, and the Alt-Z zoxide-jump widget assumed `fzf`/`rg`/`git`/`zoxide`
+  were present; they now degrade in Core's voice (`_core_err`/`_core_hint`) like `fcd`,
+  instead of a raw "command not found".
+- Removed leaked `</content>`/`</invoke>` template artifacts from the end of this
+  changelog — the exact bug class the new markdown gate now catches.
+- Restored non-executable mode (`100644`) on the twelve `zsh/*.zsh` modules. They
+  are sourced, not executed, and had regressed to `100755`, failing the audit's
+  exec-bit invariant — the exact bug class the audit exists to catch, fanning out
+  to all eight OS repos.
+- Registered `CODEOWNERS`, `dependabot.yml`, and `pull_request_template.md` in the
+  audit's `META_ALLOWLIST` so the manifest reverse-drift scan accounts for them.
