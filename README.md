@@ -1,17 +1,11 @@
-<div align="center">
-
 # 🔵 dotfiles-Defense
 
-### Detection engineering, version-controlled.
-
-The defensive role layer — detection engineering and a Dockerized hunt lab.
+**Detection engineering, version-controlled.** The defensive role layer —
+detection engineering and a Dockerized hunt lab.
 
 `sigma` · `sysmon` · `siem` · `docker`
 
-[![showcase](https://img.shields.io/badge/showcase-live-7aa2f7?style=flat-square)](https://gerrrt.github.io/dotfiles-web/)
-[![blue team](https://img.shields.io/badge/blue--team-7dcfff?style=flat-square)]()
-
-</div>
+[![showcase](https://img.shields.io/badge/showcase-live-7aa2f7?style=flat-square)](https://gerrrt.github.io/dotfiles-web/) ![blue team](https://img.shields.io/badge/blue--team-7dcfff?style=flat-square)
 
 ---
 
