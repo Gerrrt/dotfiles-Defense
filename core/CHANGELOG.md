@@ -13,6 +13,76 @@ commit (`git tag -a vX.Y.Z -m vX.Y.Z`).
 
 ## [Unreleased]
 
+## [v2.1.1] - 2026-06-29
+
+### Fixed
+
+- **`bootstrap.sh --links-only` no longer aborts when zsh isn't installed.**
+  `blib_set_login_shell` did `zsh_path="$(command -v zsh)"`; with zsh absent that
+  substitution exits non-zero, and under the bootstrap's `set -e` it aborted the run
+  _before_ the `[[ -n "$zsh_path" ]] || return 0` guard that was meant to handle the
+  missing-zsh case — surfacing as a links-only CI failure in the one base image
+  without zsh preinstalled (`gentoo/stage3`). Now `command -v zsh || true`, so the
+  guard decides, not errexit. No behavior change where zsh is present.
+- **`tag-release.sh --push` no longer pushes the protected `main` branch.** `main`
+  enforces required status checks (GH013), so the old step — `git push origin "$BRANCH"
+  && git push origin "$TAG" && git push -f origin "$MAJOR"`, branch FIRST — had its
+  branch push rejected, which short-circuited the `&&` chain so the tags never pushed
+  either: `--push` failed outright and could never complete a release through the push
+  path. The step now pushes the immutable `vX.Y.Z` tag and force-moves the `vN` major
+  alias ONLY (tags aren't branch-protected), then prints the PR recipe to land the
+  release commit on `main` (`HEAD:release/vX.Y.Z` → PR → merge commit), matching how
+  releases actually ship (e.g. #95). The non-push recipe block was corrected the same way.
+
+## [v2.1.0] - 2026-06-29
+
+### Fixed
+
+- **`starship.toml` VPN segment no longer spams on Windows.** The `[custom.vpn]`
+  probe (`ifconfig …`) is Unix-only; once the canonical file synced to the Windows
+  host verbatim, starship ran it every prompt and hit `command_timeout` with a noisy
+  `custom command … timed out` WARN. Split it into OS-gated `[custom.vpn_macos]` /
+  `[custom.vpn_linux]` modules (a custom module's `os` takes one value — no "unix"),
+  so Windows matches neither and never runs the probe. Unchanged on macOS/Linux.
+
+### Added
+
+- **Core-integrity CI guard (`make core-integrity` + `core-integrity.yml`).** A
+  durable, CI-runnable tamper check: it compares each OS repo's vendored `core/` tree
+  object against the commit its `core.lock` pins (content-addressed, so any hand-edit
+  diverges the hash). Replaces the local-only `.git/hooks` core-guard, which couldn't
+  run on a fresh clone or in CI. Companion to `fleet-drift` (integrity vs staleness) —
+  both run weekly and on demand.
+- **Per-repo core-guard (`core-integrity-call.yml` + `core-integrity.sh --self`).**
+  A reusable `workflow_call` an OS repo invokes from its own CI to BLOCK a hand-edit
+  to its vendored `core/` at PR time (prevention), where the central sweep only
+  DETECTS one after the fact. Runs the same tree-SHA comparison via a new `--self`
+  mode that checks exactly one repo against its `core.lock`. Each OS repo adds a
+  three-line caller.
+
+### Changed
+
+- **Reusable-workflow pin policy: `@vN` moving major tag.** `tag-release.sh` now
+  force-advances a `vN` major tag (e.g. `v2`) to each `vN.x` release, alongside the
+  immutable `vX.Y.Z` tag. Cross-repo callers of the fleet's reusable workflows
+  (`bootstrap-test.yml`, `core-integrity-call.yml`) pin to `@vN` instead of `@main`:
+  deterministic between releases (a caller's CI can't change with zero diff in its
+  repo) yet still auto-propagating patch/minor guard fixes. Documented in
+  `RELEASE-STRATEGY.md`. (Foundation only — re-pinning the existing `@main` callers
+  fleet-wide is a follow-up once a `v2` tag is published.)
+- **`fleet-drift.sh` labels the Windows row by release tag too.** `_check_repo`
+  gained a fourth `tag-key` argument (default `core_tag`); the Windows row passes
+  `tag`, so once `dotfiles-Windows`'s `nvim-sync.ps1` stamps a `tag = <release>`
+  field into `nvim/.core-ref` (its companion change), the dashboard shows `v2.0.0`
+  for Windows instead of the bare SHA — all nine rows now speak in release names.
+  Backward compatible: with no tag recorded it still falls back to the short SHA,
+  and the drift verdict stays SHA-based. Verified both paths against a fixture.
+- **`starship.toml` is now cross-shell (one canonical file).** Added
+  `powershell_indicator` to `[shell]` so the single Core `starship.toml` renders under
+  both zsh and PowerShell, and dotfiles-Windows now syncs this file verbatim (its new
+  `starship-sync.ps1`) instead of carrying a drifted copy. Benign on zsh — starship
+  only renders the active shell's indicator.
+
 ## [v2.0.0] - 2026-06-28
 
 > **Breaking — keybindings realigned.** The zsh file-picker moved off `Ctrl+F` to
