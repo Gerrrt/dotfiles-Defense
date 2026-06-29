@@ -1,0 +1,22 @@
+name: auto-tag
+
+# Cut THIS repo's own next vX.Y.Z release tag when a Core fan-out lands new core/ on
+# main. Delegates to the reusable workflow in dotfiles-core — one definition of the
+# version math + tagging (scripts/auto-tag.sh): PATCH-bump by default, idempotent (a
+# no-op when HEAD is already tagged vX.Y.Z), and it tags in CI so the second version
+# line (this repo's own tag) stops drifting from the Core it vendors. Pinned @v2.
+on:
+  push:
+    branches: [main]
+    paths: ['core/**']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-tag-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    uses: Gerrrt/dotfiles-core/.github/workflows/auto-tag-call.yml@v2
