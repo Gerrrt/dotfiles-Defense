@@ -1,4 +1,19 @@
-# dotfiles-Defense
+<div align="center">
+
+# 🔵 dotfiles-Defense
+
+### Detection engineering, version-controlled.
+
+The defensive role layer — detection engineering and a Dockerized hunt lab.
+
+`sigma` · `sysmon` · `siem` · `docker`
+
+[![showcase](https://img.shields.io/badge/showcase-live-7aa2f7?style=flat-square)](https://gerrrt.github.io/dotfiles-web/)
+[![blue team](https://img.shields.io/badge/blue--team-7dcfff?style=flat-square)]()
+
+</div>
+
+---
 
 The **defensive (blue) role** of the dotfiles system — the mirror image of
 `dotfiles-Kali`. Where Kali carries the offensive engagement layer, this repo
