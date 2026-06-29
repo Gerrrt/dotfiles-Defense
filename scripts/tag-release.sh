@@ -17,7 +17,7 @@
 #
 # Usage:
 #   ./scripts/tag-release.sh            # commit + annotated tag for core.version's value
-#   ./scripts/tag-release.sh --push     # …then push the branch and the tag to origin
+#   ./scripts/tag-release.sh --push     # …then push the tags (vX.Y.Z + vN) to origin
 #   make tag                            # same, via the Makefile façade (PUSH=1 to push)
 #
 # Env:
@@ -39,7 +39,9 @@ Finish the release that release.sh staged: commit core.version + CHANGELOG.md,
 create the annotated tag vX.Y.Z (X.Y.Z = the current core.version), after proving
 the tree green. Pushing is opt-in:
 
-  --push        push the current branch and the new tag to origin
+  --push        push the release tags (vX.Y.Z + the moved vN alias) to origin;
+                main is protected, so the release commit lands via a PR (the script
+                prints the recipe) — --push never touches the branch
   -h, --help    show this help and exit
 
 Env: TAG_SKIP_AUDIT=1 skips the audit gate (use only on a tree you just audited).
@@ -143,26 +145,46 @@ else
   exit 1
 fi
 
-BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)"
+# Moving MAJOR tag (vN) — the ref reusable-workflow callers pin to (RELEASE-STRATEGY.md
+# §"Pinning reusable workflows"). Lightweight and FORCE-moved to each new vN.x so callers
+# get patch/minor guard improvements without a manual bump, while staying deterministic
+# between releases (unlike @main). Advancing it here, in the one release step, is what
+# keeps it from ever drifting from the release it should point at.
+MAJOR="v${VERSION%%.*}"
+if git tag -f "$MAJOR" "$TAG^{commit}" >/dev/null; then
+  pass "moved major tag $MAJOR → $TAG"
+else
+  fail "tag-release.sh: could not move major tag $MAJOR"
+  exit 1
+fi
 
 if ((PUSH)); then
-  hdr "push $BRANCH + $TAG → origin"
-  if git push origin "$BRANCH" && git push origin "$TAG"; then
-    pass "pushed $BRANCH and $TAG"
+  hdr "push tags $TAG + $MAJOR → origin"
+  # TAGS ONLY — never `git push origin main`. main is a PROTECTED branch (required
+  # status checks), so a direct branch push is rejected and the release COMMIT must
+  # land via a PR (as v2.0.0 did, #95). Tags are not branch-protected, so we push the
+  # immutable vX.Y.Z and force-move the vN alias here; the commit goes up with the PR.
+  if git push origin "$TAG" && git push -f origin "$MAJOR"; then
+    pass "pushed $TAG and moved $MAJOR → $TAG"
   else
-    fail "tag-release.sh: push failed — the local commit+tag stand; re-push manually"
+    fail "tag-release.sh: tag push failed — re-push manually: git push origin $TAG && git push -f origin $MAJOR"
     exit 1
   fi
-  printf '\n%s──────── %s released ────────%s\n' "$c_blu" "$TAG" "$c_rst"
+  printf '\n%s──────── %s released (tags pushed) ────────%s\n' "$c_blu" "$TAG" "$c_rst"
   cat <<EOF
-  fan out: ./scripts/sync-core.sh        # vendor $TAG into the OS repos
+  land the release commit on main via PR (main is protected — no direct push):
+    git push origin HEAD:release/$TAG
+    gh pr create --base main --head release/$TAG --title "release $TAG"
+    # merge with a MERGE commit (not squash) so $TAG / $MAJOR stay in main's history
+  fan out: ./scripts/sync-core.sh        # after the release PR merges
 EOF
 else
   printf '\n%s──────── %s tagged locally ────────%s\n' "$c_blu" "$TAG" "$c_rst"
   cat <<EOF
   review:  git show $TAG
-  push:    git push origin $BRANCH && git push origin $TAG
+  push:    git push origin $TAG && git push -f origin $MAJOR     # tags only — main is protected
+  land:    git push origin HEAD:release/$TAG   # then open a PR → main (merge commit, not squash)
            (or re-run: make tag PUSH=1)
-  fan out: ./scripts/sync-core.sh        # vendor $TAG into the OS repos
+  fan out: ./scripts/sync-core.sh        # after the release PR merges
 EOF
 fi
