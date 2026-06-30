@@ -25,7 +25,7 @@ logsource:
   service: okta
 detection:
   selection:
-    eventtype:
+    eventType:
       - 'user.mfa.factor.reset_all'
       - 'user.mfa.factor.deactivate'
       - 'system.mfa.factor.deactivate'

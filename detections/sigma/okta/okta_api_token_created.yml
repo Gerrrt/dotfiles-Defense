@@ -22,7 +22,7 @@ logsource:
   service: okta
 detection:
   selection:
-    eventtype: 'system.api_token.create'
+    eventType: 'system.api_token.create'
   condition: selection
 falsepositives:
   - Onboarding a sanctioned integration - allowlist the expected admin actors and
