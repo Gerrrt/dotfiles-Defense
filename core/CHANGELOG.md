@@ -13,6 +13,42 @@ commit (`git tag -a vX.Y.Z -m vX.Y.Z`).
 
 ## [Unreleased]
 
+## [v2.6.0] - 2026-06-30
+
+### Added
+
+- **`sesh` detection (`HAVE_SESH`) — finishing wiring Core already half-shipped.**
+  `sesh` (joshmedeski's smart tmux session manager) was already driven by the
+  `Ctrl-G` shell widget (`fzf.zsh`), the `prefix + f` tmux popup (`tmux-sesh.sh`),
+  a seeded `sesh/sesh.toml.example`, and listed in `core-doctor`'s integrations —
+  but `tools.zsh` never set a `HAVE_SESH` flag for it the way it does for the
+  other detected tools. (Detection itself still worked — the `Ctrl-G`/`prefix + f`
+  fallback keys off `command -v sesh`, and `core-doctor` already probes `sesh`
+  the same way.) `tools.zsh` now sets
+  `HAVE_SESH` (like `HAVE_GUM`, no `_core_wired` arm — sesh registers no persistent
+  shell hook, so presence ≈ wired), and `PORTING-MATRIX.md` gains a `sesh` row +
+  footnote documenting the `go install github.com/joshmedeski/sesh/v2@latest` build
+  path (the **v2** module path; `go` is already a pinned mise runtime) for the
+  distros that don't package it. No `core.manifest` change — the `.example` is
+  already listed.
+- **`RELEASE-RUNBOOK.md`** — the step-by-step, copy-paste recipe for cutting a release
+  (Core, the OS-repo fan-out rollout, and htpx), plus a "dry-run a new cross-repo
+  workflow before relying on it" habit and a troubleshooting table. Complements
+  `RELEASE-STRATEGY.md` (the policy); cross-linked from it and `CLAUDE.md`.
+
+### Changed
+
+- **nvim: disable `<LeftDrag>` and `<LeftRelease>` in all modes unconditionally.**
+  Previously these were suppressed only when inside a `$TMUX` session, in Normal and
+  Visual modes. They are now `<Nop>` in Normal, Insert, and Visual modes regardless of
+  environment, eliminating accidental mouse-drag selections during terminal use.
+
+- **`bootstrap-test.yml` retries the per-distro `prep` step (up to 5x with backoff).**
+  The reusable links-only job ran the dep install once; a transient distro-mirror
+  timeout (notably openSUSE Tumbleweed's OSS CDN) then redded the job — and every Core
+  fan-out PR — on a network blip. The retry is fleet-wide (one place, every caller);
+  a genuinely broken prep still fails loud after the attempts are exhausted.
+
 ## [v2.5.0] - 2026-06-29
 
 ### Added
