@@ -1,0 +1,43 @@
+title: LSASS process access with dump-shaped rights
+id: 4e9ec480-5e5f-4e7d-b986-a10d0caedebc
+status: experimental
+description: |
+  Detects credential theft from memory: a handle to lsass.exe with read/dump
+  access rights, from a process that is not a known security/AV engine. Sysmon 10
+  (ProcessAccess) sees this far better than the Security log; the GrantedAccess
+  masks below are the classic dump-capable combinations (0x1010, 0x1410, 0x1438,
+  0x143a, 0x1fffff).
+  Validate (purple): run "nxc -M lsassy" / a remote LSASS dump from dotfiles-Kali
+  (hacktheplanet "Lateral movement" fold; htpx pair lsass-dump-lsassy). Tune the
+  SourceImage allowlist to your EDR/AV.
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/lsass-4656.md
+author: dotfiles-Defense
+date: 2026-06-30
+tags:
+  - attack.credential-access
+  - attack.t1003.001
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    GrantedAccess:
+      - '0x1010'
+      - '0x1410'
+      - '0x1438'
+      - '0x143a'
+      - '0x1fffff'
+  filter_av:
+    SourceImage|contains:
+      - '\MsMpEng.exe'
+      - '\MsSense.exe'
+      - '\wininit.exe'
+      - '\csrss.exe'
+  condition: selection and not filter_av
+falsepositives:
+  - Endpoint protection / EDR agents reading LSASS (allowlist by SourceImage).
+  - Some backup and performance-monitoring agents.
+level: high

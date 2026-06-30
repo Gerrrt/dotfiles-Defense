@@ -1,0 +1,39 @@
+title: Suspicious service installed (psexec-style remote exec)
+id: fd22807d-bdb8-44b8-81f4-8d44c8be24b4
+status: experimental
+description: |
+  Detects a new service install (7045) whose binary path is the psexec/remote-exec
+  shape: a random/short service name pointing at cmd/powershell, a %SystemRoot% drop,
+  or an ADMIN$ path. psexec-class lateral movement (impacket-psexec, smbexec) leaves
+  this even when the service name is randomized - detect on the binary path shape and
+  allowlist your known services.
+  Validate (purple): run impacket-psexec from dotfiles-Kali (hacktheplanet "Lateral
+  movement & remote execution" / "Active Directory" folds; pairs with pth-lateral-nxc).
+references:
+  - https://attack.mitre.org/techniques/T1569/002/
+  - https://github.com/Gerrrt/dotfiles-Kali/blob/main/PURPLE-TEAM.md
+author: dotfiles-Defense
+date: 2026-06-30
+tags:
+  - attack.lateral-movement
+  - attack.execution
+  - attack.t1569.002
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7045
+  suspicious_path:
+    ImagePath|contains:
+      - '\cmd.exe'
+      - 'powershell'
+      - '%COMSPEC%'
+      - '\ADMIN$\'
+      - '\Temp\'
+      - '\Users\'
+  condition: selection and suspicious_path
+falsepositives:
+  - Legitimate management agents that install transient services (allowlist by
+    service name and signed binary path).
+level: medium

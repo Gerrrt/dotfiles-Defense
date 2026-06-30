@@ -1,0 +1,33 @@
+title: AD CS ESC1 - certificate request with a subject alternative name
+id: a696e561-3c04-43da-9014-a4f6611ac897
+status: experimental
+description: |
+  Detects the AD CS ESC1 / relay-to-ADCS invariant: a certificate request (4886)
+  on a CA whose template lets the enrollee supply a subjectAltName naming a
+  different principal than the requester. The SAN-vs-requester mismatch is the
+  signal; pull the requested UPN from the event and compare to the Requester.
+  Also watch 5136 writes to userCertificate.
+  Validate (purple): run "certipy-ad req ... -upn administrator" from dotfiles-Kali
+  (hacktheplanet "AD CS abuse" fold; htpx pair adcs-esc1-certipy). Requires CA
+  request auditing (auditpol / CA "Issued requests" logging) to populate 4886/4887.
+references:
+  - https://attack.mitre.org/techniques/T1649/
+  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/adcs-esc1-4886.md
+author: dotfiles-Defense
+date: 2026-06-30
+tags:
+  - attack.privilege-escalation
+  - attack.t1649
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - 4886
+      - 4887
+  condition: selection
+falsepositives:
+  - Templates that legitimately enroll on behalf of others (enrollment agents) -
+    triage by comparing the requested SAN UPN to the Requester; allowlist agents.
+level: medium
