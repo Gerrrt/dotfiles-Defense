@@ -24,7 +24,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 16 rules / 18 documents, organized by ATT&CK tactic
+### `sigma/` — 19 rules / 21 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -62,9 +62,23 @@ purple-validatable out of the box.
 | `scheduled_task_suspicious_4698` | 4698 task created | T1053.005 | Persistence · schtask-persist |
 | `wmi_event_subscription_consumer` | Sysmon 19/20/21 | T1546.003 | Persistence · wmi-subscription |
 
+**`defense_evasion/`**
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `dcshadow_rogue_dc_4742` | 4742 `GC/` SPN write (+5137/4662) | T1207 | AD attack paths · dcshadow |
+
+**`cloud/`** (Entra/Azure AD audit — `product: azure`)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `entra_illicit_consent_grant` | AuditLogs "Consent to application" | T1528 | M365/Entra · consent-grant |
+| `entra_sp_credential_backdoor` | AuditLogs "Add SP credentials" | T1098.001 | M365/Entra · sp-cred-backdoor |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
-selections.
+selections. The `cloud/` rules are the first non-Windows logsource here and mirror
+the htpx corpus's companion-only Entra pairs.
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 
@@ -87,8 +101,11 @@ of the "compile Sigma → backend" step (real pipelines use `sigma convert`).
 
 ## Coverage gaps (honest notes)
 
-- **Golden Ticket** (4769-without-4768) and **NTLM relay** (4624 workstation
-  mismatch) are correlation/join-heavy and ship only as SPL in Kali's
-  `PURPLE-TEAM.md` for now — a Sigma correlation rule is the next step.
+- **Golden Ticket** (4769-without-4768), **Silver Ticket** (Kerberos logon
+  without a matching 4769), and **NTLM relay** (4624 workstation mismatch) are all
+  *absence*/join-based — they detect the lack of an expected event or a field-to-
+  field comparison, which Sigma can't express cleanly — so they ship only as SPL in
+  Kali's `PURPLE-TEAM.md` (via their htpx pairs) for now. A backend correlation
+  search is the next step; for Silver Ticket the durable control is PAC validation.
 - Field names assume the Splunk Windows TA / Sysmon schema; normalize to your CIM
   before relying on them.
