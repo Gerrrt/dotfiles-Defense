@@ -1,0 +1,62 @@
+name: sigma
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Detection-content gate: the Sigma rules in detections/sigma/ ARE code, so they
+# get a real CI check (the repo's lint.yml only covers shell). Two things are
+# proven on every change:
+#
+#   1. STRUCTURAL LINT (hard gate, hermetic) — `sigma check` with a validation
+#      config that drops only the two validators needing live MITRE downloads, so
+#      the gate can't flake on a network hiccup. Catches bad YAML, broken
+#      conditions, dangling field refs, duplicate ids/titles, bad status/level, …
+#   2. COMPILE (hard gate) — every rule must compile to a real backend (Splunk) via
+#      detections/sigma/convert.sh. A rule that can't be converted isn't deployable.
+#
+# ATT&CK-tag validity (is this a real published technique id) is a third, ADVISORY
+# step — it needs to download the MITRE ATT&CK/D3FEND dictionaries, so it must never
+# break the build on a transient download failure.
+# ──────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "detections/sigma/**"
+      - "detections/sigma-validation-config.yml"
+      - ".github/workflows/sigma.yml"
+  pull_request:
+    paths:
+      - "detections/sigma/**"
+      - "detections/sigma-validation-config.yml"
+      - ".github/workflows/sigma.yml"
+
+concurrency:
+  group: sigma-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sigma:
+    name: sigma validate + compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install sigma-cli + Splunk backend
+        run: pip install sigma-cli pysigma-backend-splunk
+
+      - name: Structural lint (hard gate, hermetic)
+        run: sigma check -c detections/sigma-validation-config.yml detections/sigma/
+
+      - name: Compile every rule to Splunk (hard gate)
+        run: ./detections/sigma/convert.sh splunk > /dev/null
+
+      - name: ATT&CK tag validity (advisory — needs live MITRE data)
+        continue-on-error: true
+        run: sigma check detections/sigma/
