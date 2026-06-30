@@ -23,10 +23,13 @@ validation note. Real IOC values from cases stay in `~/cases/*/iocs`, never here
 The Sigma rules are gated on every change by `.github/workflows/sigma.yml` (the
 repo's `lint.yml` only covers shell). Two hard checks, one advisory:
 
-1. **Structural lint** (hermetic) — `sigma check -c detections/sigma-validation-config.yml`.
+1. **Structural lint** (hermetic) —
+   `sigma check --fail-on-issues -c detections/sigma-validation-config.yml`.
    Catches bad YAML, broken conditions, dangling field refs, duplicate ids/titles,
-   bad status/level. The config drops only the two validators that need live MITRE
-   downloads, so the gate never flakes on a network hiccup.
+   bad status/level. `--fail-on-issues` is required — `sigma check` otherwise exits 0
+   on validator *issues* (only parse/semantic errors fail it by default). The config
+   drops only the two validators that need live MITRE downloads, so the gate never
+   flakes on a network hiccup.
 2. **Compile** — every rule must compile to a real backend (Splunk) via
    `detections/sigma/convert.sh`. A rule that won't convert isn't deployable.
 3. **ATT&CK-tag validity** — advisory (`continue-on-error`); checks each
@@ -36,9 +39,9 @@ repo's `lint.yml` only covers shell). Two hard checks, one advisory:
 Run it locally (any pySigma backend):
 
 ```sh
-pip install sigma-cli pysigma-backend-splunk
-sigma check -c detections/sigma-validation-config.yml detections/sigma/   # lint
-detections/sigma/convert.sh splunk                                        # compile → SPL
+pip install "sigma-cli==3.0.2" "pysigma-backend-splunk==2.1.0"   # pinned, matching CI
+sigma check --fail-on-issues -c detections/sigma-validation-config.yml detections/sigma/   # lint
+detections/sigma/convert.sh splunk                                                         # compile → SPL
 ```
 
 `convert.sh` is the reproducible "Sigma → backend" step: it compiles each rule with

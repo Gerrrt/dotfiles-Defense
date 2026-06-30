@@ -48,15 +48,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install sigma-cli + Splunk backend
-        run: pip install sigma-cli pysigma-backend-splunk
+      - name: Install sigma-cli + Splunk backend (pinned — this is a hard gate)
+        run: pip install "sigma-cli==3.0.2" "pysigma-backend-splunk==2.1.0"
 
       - name: Structural lint (hard gate, hermetic)
-        run: sigma check -c detections/sigma-validation-config.yml detections/sigma/
+        # --fail-on-issues: `sigma check` exits 0 on validator *issues* by default
+        # (only parse/semantic errors fail it); the flag makes issues gate too.
+        run: sigma check --fail-on-issues -c detections/sigma-validation-config.yml detections/sigma/
 
       - name: Compile every rule to Splunk (hard gate)
         run: ./detections/sigma/convert.sh splunk > /dev/null
 
       - name: ATT&CK tag validity (advisory — needs live MITRE data)
         continue-on-error: true
-        run: sigma check detections/sigma/
+        run: sigma check --fail-on-issues detections/sigma/
