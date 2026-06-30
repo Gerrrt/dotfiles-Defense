@@ -2,11 +2,14 @@ title: WMI event subscription persistence - command-line consumer
 id: 361cae33-5391-4dd1-ad67-5c6a13ffe9b5
 status: experimental
 description: |
-  Detects fileless WMI event-subscription persistence: Sysmon 20 (WmiConsumer) /
-  21 (WmiBinding) registering a CommandLineEventConsumer whose Destination runs
-  PowerShell/cmd/a LOLBin. The subscription lives in the WMI repository, survives
-  reboot, runs as SYSTEM, and touches no Run key or scheduled task - the Security
-  log barely sees it, but Sysmon does. Legitimate permanent consumers are rare and
+  Detects fileless WMI event-subscription persistence: Sysmon 20 (WmiConsumer)
+  registering a CommandLineEventConsumer whose Destination runs PowerShell/cmd/a
+  LOLBin. The subscription lives in the WMI repository, survives reboot, runs as
+  SYSTEM, and touches no Run key or scheduled task - the Security log barely sees
+  it, but Sysmon does. This keys on the consumer (event 20) because that is what
+  carries the command; the binding (event 21) and filter (event 19) carry no
+  Destination, so treat any *new* binding as its own separate low-volume alert
+  rather than folding it in here. Legitimate permanent consumers are rare and
   usually from known management software; allowlist those and alert on the rest.
   Validate (purple): run "nxc -M wmi-event" / PowerLurk from dotfiles-Kali
   (hacktheplanet "Persistence" fold; htpx pair wmi-subscription). Requires Sysmon
@@ -18,7 +21,7 @@ author: dotfiles-Defense
 date: 2026-06-30
 tags:
   - attack.persistence
-  - attack.privilege-escalation
+  - attack.privilege_escalation
   - attack.t1546.003
 logsource:
   product: windows
@@ -35,9 +38,7 @@ detection:
       - 'rundll32'
       - '-enc'
       - 'FromBase64String'
-  selection_binding:
-    EventID: 21
-  condition: selection_consumer or selection_binding
+  condition: selection_consumer
 falsepositives:
   - SCCM/monitoring agents that register permanent consumers (allowlist by Name
     and Destination).

@@ -26,8 +26,11 @@
       </ProcessCreate>
     </RuleGroup>
 
-    <!-- Event 10: ProcessAccess — feeds lsass_handle_access. Only LSASS, only
-         dump-shaped masks; exclude the OS/AV processes that read LSASS normally. -->
+    <!-- Event 10: ProcessAccess — feeds lsass_handle_access. Captures ALL handle
+         opens to LSASS (no GrantedAccess filter here on purpose: exact masks are
+         brittle and vary, so collect broadly and let the lsass_handle_access Sigma
+         rule apply the dump-shaped GrantedAccess masks downstream). The exclude
+         group below drops the OS/AV processes that read LSASS normally. -->
     <RuleGroup name="lsass-access" groupRelation="or">
       <ProcessAccess onmatch="include">
         <TargetImage condition="image">lsass.exe</TargetImage>
@@ -67,7 +70,10 @@
 
     <!-- Events 19/20/21: WmiEvent — feeds wmi_event_subscription_consumer. This is
          the whole reason a Run-key/scheduled-task baseline is not enough: WMI
-         subscription persistence is fileless and only shows here. Capture all. -->
+         subscription persistence is fileless and only shows here.
+         NOTE on Sysmon semantics: an EMPTY onmatch="exclude" group excludes
+         nothing, i.e. it logs ALL WmiEvent (19/20/21) — which is what we want. (An
+         empty onmatch="include" would do the opposite and log none.) -->
     <RuleGroup name="wmi-events" groupRelation="or">
       <WmiEvent onmatch="exclude" />
     </RuleGroup>
