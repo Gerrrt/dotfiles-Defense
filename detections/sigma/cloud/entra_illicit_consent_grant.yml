@@ -1,0 +1,40 @@
+title: Entra consent grant to a third-party app (illicit-consent triage)
+id: 06d00b40-680e-4f4b-a675-889c2a2dd0ed
+status: experimental
+description: |
+  Surfaces OAuth consent-grant events in Entra ID for illicit-consent triage: a
+  "Consent to application" / delegated-permission-grant audit event. It matches the
+  consent operation broadly - the "illicit" call is a triage step, not something
+  this rule can decide alone, so treat it as a triage surface rather than a
+  high-fidelity alert. The abuse case is a user granting high-value mail/file scopes
+  (Mail.Read, offline_access, Files.Read.All) to a third-party app, yielding a
+  refresh token to their data with no password and no MFA on reuse, surviving
+  password resets. Triage by app, scopes, and whether the app is newly registered/
+  unverified; restricting user consent to verified publishers turns this into
+  prevention.
+  Validate (purple): run an illicit-consent grant from dotfiles-Kali (htpx pair
+  consent-grant; companion-only, M365/Entra section).
+references:
+  - https://attack.mitre.org/techniques/T1528/
+  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/consent-grant-auditlogs.md
+author: dotfiles-Defense
+date: 2026-06-30
+tags:
+  - attack.credential_access
+  - attack.t1528
+logsource:
+  product: azure
+  service: auditlogs
+detection:
+  selection:
+    OperationName:
+      - 'Consent to application'
+      - 'Add delegated permission grant'
+      - 'Add OAuth2PermissionGrant'
+  condition: selection
+falsepositives:
+  - Sanctioned line-of-business apps onboarded via user consent (allowlist the
+    app IDs / restrict user consent to verified publishers). Triage each hit by
+    the granted scopes - high-value mail/file scopes (Mail.Read, offline_access,
+    Files.Read.All) and unverified/new apps are the ones that matter.
+level: medium
