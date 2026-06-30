@@ -18,6 +18,39 @@ Workflow: write Sigma → convert to your backend → stand up the lab (`siemup`
 run the matching attack from Kali → confirm it fires → tune → commit rule +
 validation note. Real IOC values from cases stay in `~/cases/*/iocs`, never here.
 
+## CI gate — the rules are validated as code
+
+The Sigma rules are gated on every change by `.github/workflows/sigma.yml` (the
+repo's `lint.yml` only covers shell). Two hard checks, one advisory:
+
+1. **Structural lint** (hermetic) —
+   `sigma check --fail-on-issues -c detections/sigma-validation-config.yml`.
+   Catches bad YAML, broken conditions, dangling field refs, duplicate ids/titles,
+   bad status/level. `--fail-on-issues` is required — `sigma check` otherwise exits 0
+   on validator *issues* (only parse/semantic errors fail it by default). The config
+   drops only the two validators that need live MITRE downloads, so the gate never
+   flakes on a network hiccup.
+2. **Compile** — every rule must compile to a real backend (Splunk) via
+   `detections/sigma/convert.sh`. A rule that won't convert isn't deployable.
+3. **ATT&CK-tag validity** — advisory (`continue-on-error`); checks each
+   `attack.tXXXX` is a real published technique, but never breaks the build on a
+   transient MITRE download failure.
+
+Run it locally (any pySigma backend):
+
+```sh
+pip install "sigma-cli==3.0.2" "pysigma-backend-splunk==2.1.0"   # pinned, matching CI
+sigma check --fail-on-issues -c detections/sigma-validation-config.yml detections/sigma/   # lint
+detections/sigma/convert.sh splunk                                                         # compile → SPL
+```
+
+`convert.sh` is the reproducible "Sigma → backend" step: it compiles each rule with
+`--without-pipeline` (raw logical fields, for a compile check). For *deployable*
+output, add a processing pipeline, e.g. `sigma convert -t splunk -p splunk_windows
+detections/sigma/<dir>/`. The `siem/` forms below are the worked, hand-wrapped
+deploy artifacts (with schedules, severities, entity mappings) that a bare
+`sigma convert` doesn't emit.
+
 ## What ships today (the starter pack)
 
 The first content drop mirrors the **htpx red↔blue corpus**: each rule below
