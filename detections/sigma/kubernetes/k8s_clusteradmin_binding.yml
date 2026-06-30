@@ -1,12 +1,16 @@
-title: Kubernetes cluster-admin role binding created
+title: Kubernetes cluster-admin role binding created or modified
 id: 26b4b6b8-2959-43c3-a7d1-e4f2239e397a
 status: experimental
 description: |
   Detects a (cluster)rolebinding that grants the built-in cluster-admin role - the
   most direct Kubernetes privilege-escalation / persistence move: bind a user, group,
   or (compromised) service account to cluster-admin and you own the cluster, durably.
-  The roleRef to cluster-admin is the invariant. Almost nothing should mint new
+  The roleRef to cluster-admin is the invariant. The rule covers create, update, and
+  patch, so the title says "created or modified". Almost nothing should mint or edit
   cluster-admin bindings outside controlled platform automation.
+  Requires the kube-apiserver audit policy to log requestObject (Request or
+  RequestResponse level) - roleRef.name lives in the request body, so at Metadata
+  level this rule will not match even though audit events exist.
   Validate (purple): run "kubectl create clusterrolebinding ... --clusterrole=
   cluster-admin --serviceaccount=default:default" from dotfiles-Kali (htpx pair
   k8s-clusteradmin-binding).
