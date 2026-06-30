@@ -24,7 +24,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 19 rules / 21 documents, organized by ATT&CK tactic
+### `sigma/` — 22 rules / 24 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -68,12 +68,15 @@ purple-validatable out of the box.
 | ---- | -------------- | ------ | ------------- |
 | `dcshadow_rogue_dc_4742` | 4742 `GC/` SPN write (+5137/4662) | T1207 | AD attack paths · dcshadow |
 
-**`cloud/`** (Entra/Azure AD audit — `product: azure`)
+**`cloud/`** (multi-cloud — Entra `product: azure`, AWS `product: aws`, GCP `product: gcp`)
 
 | Rule | Event / source | ATT&CK | Validate with |
 | ---- | -------------- | ------ | ------------- |
-| `entra_illicit_consent_grant` | AuditLogs "Consent to application" | T1528 | M365/Entra · consent-grant |
-| `entra_sp_credential_backdoor` | AuditLogs "Add SP credentials" | T1098.001 | M365/Entra · sp-cred-backdoor |
+| `entra_illicit_consent_grant` | Entra AuditLogs "Consent to application" | T1528 | M365/Entra · consent-grant |
+| `entra_sp_credential_backdoor` | Entra AuditLogs "Add SP credentials" | T1098.001 | M365/Entra · sp-cred-backdoor |
+| `aws_iam_access_key_created` | CloudTrail `CreateAccessKey` | T1098.001 | AWS IAM · aws-iam-backdoor-key |
+| `aws_login_profile_created` | CloudTrail Create/UpdateLoginProfile | T1098 | AWS IAM · aws-console-login-profile |
+| `gcp_service_account_key_created` | GCP audit `CreateServiceAccountKey` | T1098.001 | GCP IAM · gcp-sa-key |
 
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
@@ -94,18 +97,32 @@ is a lab baseline, not production — graduate to `sysmon-modular` and tune.
 - `suricata/coercion.rules` — DCERPC interface binds for PetitPotam / PrinterBug /
   DFSCoerce / ShadowCoerce (the wire twin of the 5145 coercion detection).
 
-### `siem/splunk/savedsearches.conf`
+### `siem/` — deployable backend forms
 
-Five rules hand-compiled to deployable Splunk saved searches — the worked example
-of the "compile Sigma → backend" step (real pipelines use `sigma convert`).
+- **`splunk/savedsearches.conf`** — five single-event rules hand-compiled to Splunk
+  saved searches (the worked "compile Sigma → backend" example; real pipelines use
+  `sigma convert`).
+- **`splunk/correlation_searches.conf`** — the three *absence/join-based* detections
+  Sigma can't express — **Golden Ticket** (4769-without-4768), **Silver Ticket**
+  (4624-without-4769), and **NTLM relay** (4624 workstation/source mismatch) — as
+  deployable Splunk saved searches. This is the promised next step for the
+  coverage-gap items below.
+- **`sentinel/*.yaml`** — Microsoft Sentinel scheduled-analytics-rule deploy forms
+  of the Entra cloud detections (illicit consent grant, SP credential backdoor,
+  device-code sign-in). The AWS/GCP cloud rules deploy in their native consoles
+  (CloudTrail/Athena, GCP Logging) or via Sentinel's AWS/GCP connectors.
 
 ## Coverage gaps (honest notes)
 
 - **Golden Ticket** (4769-without-4768), **Silver Ticket** (Kerberos logon
   without a matching 4769), and **NTLM relay** (4624 workstation mismatch) are all
   *absence*/join-based — they detect the lack of an expected event or a field-to-
-  field comparison, which Sigma can't express cleanly — so they ship only as SPL in
-  Kali's `PURPLE-TEAM.md` (via their htpx pairs) for now. A backend correlation
-  search is the next step; for Silver Ticket the durable control is PAC validation.
+  field comparison, which Sigma can't express cleanly. They now ship as **deployable
+  Splunk correlation searches** in `siem/splunk/correlation_searches.conf` (and as
+  SPL in Kali's `PURPLE-TEAM.md` via their htpx pairs). For Silver Ticket the
+  durable control remains PAC validation.
+- The **AWS/GCP** Sigma rules are broad event surfaces by design — the backdoor
+  invariant (actor ≠ target) is a field-to-field comparison left to backend triage,
+  same as the ADCS ESC1 and Entra-consent rules.
 - Field names assume the Splunk Windows TA / Sysmon schema; normalize to your CIM
   before relying on them.
