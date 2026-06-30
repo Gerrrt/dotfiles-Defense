@@ -57,7 +57,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 25 rules / 27 documents, organized by ATT&CK tactic
+### `sigma/` — 28 rules / 30 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -119,11 +119,19 @@ purple-validatable out of the box.
 | `k8s_pod_exec_attach` | audit: `pods/exec`+`pods/attach` create | T1609 | Kubernetes · k8s-exec |
 | `k8s_clusteradmin_binding` | audit: roleRef `cluster-admin` binding | T1098 | Kubernetes · k8s-clusteradmin-binding |
 
+**`okta/`** (Okta System Log — `product: okta`)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `okta_mfa_factor_reset` | `user.mfa.factor.reset_all`/deactivate | T1556.006 | Okta · okta-mfa-reset |
+| `okta_api_token_created` | `system.api_token.create` | T1098 | Okta · okta-api-token |
+| `okta_idp_created` | `system.idp.lifecycle.create`/activate | T1556/T1484.002 | Okta · okta-idp-backdoor |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
-selections. The `cloud/` and `kubernetes/` rules are the non-Windows logsources
-here (`product: azure|aws|gcp|kubernetes`) and mirror the htpx corpus's
-companion-only cloud + K8s pairs.
+selections. The `cloud/`, `kubernetes/`, and `okta/` rules are the non-Windows
+logsources here (`product: azure|aws|gcp|kubernetes|okta`) and mirror the htpx
+corpus's companion-only cloud, K8s, and Okta pairs.
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 
