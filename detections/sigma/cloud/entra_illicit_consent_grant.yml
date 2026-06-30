@@ -1,14 +1,17 @@
-title: Entra illicit consent grant to a third-party app
+title: Entra consent grant to a third-party app (illicit-consent triage)
 id: 06d00b40-680e-4f4b-a675-889c2a2dd0ed
 status: experimental
 description: |
-  Detects an illicit consent grant in Entra ID: a "Consent to application" audit
-  event where a user grants delegated permissions to a third-party OAuth app -
-  especially high-value mail/file scopes (Mail.Read, offline_access, Files.Read.All).
-  The grant yields a refresh token to the user's data with no password and no MFA
-  on reuse, surviving password resets. The consent event is the invariant; triage
-  by app, scopes, and whether the app is newly registered/unverified. Restricting
-  user consent to verified publishers turns this into prevention.
+  Surfaces OAuth consent-grant events in Entra ID for illicit-consent triage: a
+  "Consent to application" / delegated-permission-grant audit event. It matches the
+  consent operation broadly - the "illicit" call is a triage step, not something
+  this rule can decide alone, so treat it as a triage surface rather than a
+  high-fidelity alert. The abuse case is a user granting high-value mail/file scopes
+  (Mail.Read, offline_access, Files.Read.All) to a third-party app, yielding a
+  refresh token to their data with no password and no MFA on reuse, surviving
+  password resets. Triage by app, scopes, and whether the app is newly registered/
+  unverified; restricting user consent to verified publishers turns this into
+  prevention.
   Validate (purple): run an illicit-consent grant from dotfiles-Kali (htpx pair
   consent-grant; companion-only, M365/Entra section).
 references:
