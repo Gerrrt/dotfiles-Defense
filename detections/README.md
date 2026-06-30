@@ -57,7 +57,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 22 rules / 24 documents, organized by ATT&CK tactic
+### `sigma/` — 25 rules / 27 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -111,10 +111,19 @@ purple-validatable out of the box.
 | `aws_login_profile_created` | CloudTrail Create/UpdateLoginProfile | T1098 | AWS IAM · aws-console-login-profile |
 | `gcp_service_account_key_created` | GCP audit `CreateServiceAccountKey` | T1098.001 | GCP IAM · gcp-sa-key |
 
+**`kubernetes/`** (kube-apiserver audit — `product: kubernetes`)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `k8s_privileged_pod_created` | audit: privileged/hostPID/hostPath pod create | T1610/T1611 | Kubernetes · k8s-privileged-pod |
+| `k8s_pod_exec_attach` | audit: `pods/exec`+`pods/attach` create | T1609 | Kubernetes · k8s-exec |
+| `k8s_clusteradmin_binding` | audit: roleRef `cluster-admin` binding | T1098 | Kubernetes · k8s-clusteradmin-binding |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
-selections. The `cloud/` rules are the first non-Windows logsource here and mirror
-the htpx corpus's companion-only Entra pairs.
+selections. The `cloud/` and `kubernetes/` rules are the non-Windows logsources
+here (`product: azure|aws|gcp|kubernetes`) and mirror the htpx corpus's
+companion-only cloud + K8s pairs.
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 

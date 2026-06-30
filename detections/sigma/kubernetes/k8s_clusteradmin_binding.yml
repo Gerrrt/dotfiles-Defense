@@ -1,0 +1,39 @@
+title: Kubernetes cluster-admin role binding created
+id: 26b4b6b8-2959-43c3-a7d1-e4f2239e397a
+status: experimental
+description: |
+  Detects a (cluster)rolebinding that grants the built-in cluster-admin role - the
+  most direct Kubernetes privilege-escalation / persistence move: bind a user, group,
+  or (compromised) service account to cluster-admin and you own the cluster, durably.
+  The roleRef to cluster-admin is the invariant. Almost nothing should mint new
+  cluster-admin bindings outside controlled platform automation.
+  Validate (purple): run "kubectl create clusterrolebinding ... --clusterrole=
+  cluster-admin --serviceaccount=default:default" from dotfiles-Kali (htpx pair
+  k8s-clusteradmin-binding).
+references:
+  - https://attack.mitre.org/techniques/T1098/
+  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/k8s-rolebinding-audit.md
+author: dotfiles-Defense
+date: 2026-06-30
+tags:
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1098
+logsource:
+  product: kubernetes
+  service: audit
+detection:
+  selection:
+    verb:
+      - 'create'
+      - 'update'
+      - 'patch'
+    objectRef.resource:
+      - 'clusterrolebindings'
+      - 'rolebindings'
+    requestObject.roleRef.name: 'cluster-admin'
+  condition: selection
+falsepositives:
+  - Cluster bootstrap and sanctioned platform automation (GitOps/IaC) that manages
+    RBAC - allowlist those principals and review the rest.
+level: high

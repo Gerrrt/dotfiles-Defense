@@ -1,0 +1,40 @@
+title: Kubernetes privileged / host-namespace pod created (node escape)
+id: 6a238c53-75db-45a7-8896-b6573b4ef9e0
+status: experimental
+description: |
+  Detects creation of a pod that can escape to the node: a privileged container,
+  host PID/network namespace sharing, or a hostPath mount of the root filesystem.
+  These are the building blocks of the classic "privileged pod -> nsenter into PID 1"
+  container breakout. Almost nothing in a hardened cluster legitimately requests
+  privileged/hostPID; gate them with admission control (PSA restricted) and alert on
+  the rest.
+  Validate (purple): run the privileged-pod/nsenter breakout from dotfiles-Kali
+  (htpx pair k8s-privileged-pod). Requires the kube-apiserver audit policy logging
+  pod create at RequestResponse level.
+references:
+  - https://attack.mitre.org/techniques/T1610/
+  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/k8s-privileged-pod-audit.md
+author: dotfiles-Defense
+date: 2026-06-30
+tags:
+  - attack.privilege_escalation
+  - attack.t1610
+  - attack.t1611
+logsource:
+  product: kubernetes
+  service: audit
+detection:
+  selection_create:
+    verb: 'create'
+    objectRef.resource: 'pods'
+  escape_privileged:
+    requestObject.spec.containers.securityContext.privileged: true
+  escape_hostpid:
+    requestObject.spec.hostPID: true
+  escape_hostpath:
+    requestObject.spec.volumes.hostPath.path: '/'
+  condition: selection_create and 1 of escape_*
+falsepositives:
+  - Sanctioned infrastructure pods (CNI, CSI, monitoring agents) that require
+    privileged or hostPath - allowlist by namespace/serviceaccount/image.
+level: high

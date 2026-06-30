@@ -1,0 +1,35 @@
+title: Kubernetes pod exec / attach
+id: 58f7fc78-5340-4f02-9596-da4514108b67
+status: experimental
+description: |
+  Detects interactive access into a running pod: a create against the pods/exec or
+  pods/attach subresource (kubectl exec / attach). This is the container-runtime
+  equivalent of an interactive shell on a host - routine in dev, but in production it
+  is the tell for hands-on-keyboard activity, debugging-as-a-foothold, or post-
+  compromise lateral movement. Scope to production namespaces and alert on
+  exec/attach by human users (not controllers/service accounts).
+  Validate (purple): run "kubectl exec -it <pod> -- sh" from dotfiles-Kali (htpx pair
+  k8s-exec). Requires the kube-apiserver audit policy logging the exec subresource.
+references:
+  - https://attack.mitre.org/techniques/T1609/
+  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/k8s-exec-audit.md
+author: dotfiles-Defense
+date: 2026-06-30
+tags:
+  - attack.execution
+  - attack.t1609
+logsource:
+  product: kubernetes
+  service: audit
+detection:
+  selection:
+    verb: 'create'
+    objectRef.resource: 'pods'
+    objectRef.subresource:
+      - 'exec'
+      - 'attach'
+  condition: selection
+falsepositives:
+  - Routine developer/operator access in non-production namespaces, and debug
+    controllers - scope to production and allowlist known automation principals.
+level: medium
