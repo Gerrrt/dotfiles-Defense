@@ -13,6 +13,30 @@ commit (`git tag -a vX.Y.Z -m vX.Y.Z`).
 
 ## [Unreleased]
 
+### Changed
+
+- **starship: pin an explicit `command_timeout = 1300` (was the implicit 500ms
+  default).** The value is both a correctness knob and a safety valve. Correctness:
+  a `git status` on a large or cold repo can exceed 500ms, and the default would
+  blank the git segment mid-render; 1300ms clears that on real repos. Safety valve:
+  `command_timeout` is the bound at which starship abandons AND kills the external
+  command backing a segment (the `git_*` modules, any `[custom]` command). When a
+  git call wedges — a stale `.git/index.lock`, a repo on a slow `\\wsl$`/network
+  path, a hung credential probe — the child is now reaped at this bound instead of
+  left running. That matters most on Windows, where an un-reaped git child orphans
+  and one-per-prompt-render piles up into hundreds of stuck `git.exe` (enough that
+  scoop/winget can't then replace the in-use git binary to update it). Pairs with a
+  Windows-side pwsh change that makes shell-spawned git fail fast rather than block
+  on an auth prompt.
+- **Repo-location references migrated from the `Gerrrt` personal account to the
+  `dotgibson` org.** Vendored-out URLs (`.bin/sync-upstream.sh`, `ARCHITECTURE.md`),
+  the reusable-workflow `uses:` refs, the showcase Pages badge (`gerrrt.github.io` →
+  `dotgibson.github.io`), and the `github.repository_owner == 'dotgibson'` guards in
+  `release`/`sync-fanout`/`notify-web` (which silently no-op under any other owner)
+  now point at the new org. The nvim `lua/gerrrt/**` module namespace and the
+  `@gerrrt` code-owner are deliberately unchanged — those are the personal handle,
+  not repo locations.
+
 ## [v2.6.0] - 2026-06-30
 
 ### Added
