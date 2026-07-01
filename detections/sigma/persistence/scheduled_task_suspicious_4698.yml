@@ -12,7 +12,7 @@ description: |
   Object Access > Other Object Access Events audit subcategory.
 references:
   - https://attack.mitre.org/techniques/T1053/005/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/schtask-4698.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/schtask-4698.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

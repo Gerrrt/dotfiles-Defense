@@ -16,7 +16,7 @@ description: |
   k8s-clusteradmin-binding).
 references:
   - https://attack.mitre.org/techniques/T1098/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/k8s-rolebinding-audit.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/k8s-rolebinding-audit.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

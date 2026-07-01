@@ -13,7 +13,7 @@ description: |
 references:
   - https://attack.mitre.org/techniques/T1556/
   - https://attack.mitre.org/techniques/T1484/002/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/okta-idp-audit.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/okta-idp-audit.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

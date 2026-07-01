@@ -12,7 +12,7 @@ description: |
   k8s-exec). Requires the kube-apiserver audit policy logging the exec subresource.
 references:
   - https://attack.mitre.org/techniques/T1609/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/k8s-exec-audit.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/k8s-exec-audit.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

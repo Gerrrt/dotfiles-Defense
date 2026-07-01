@@ -7,7 +7,7 @@ description: |
   from one client is the probe.
 references:
   - https://attack.mitre.org/techniques/T1558/004/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/asrep-probing-4771.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/asrep-probing-4771.md
 author: dotfiles-Defense
 date: 2026-06-30
 name: kerb_preauth_fail_4771

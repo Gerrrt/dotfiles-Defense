@@ -13,7 +13,7 @@ description: |
   DC computer accounts below.
 references:
   - https://attack.mitre.org/techniques/T1207/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/dcshadow-4742.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/dcshadow-4742.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

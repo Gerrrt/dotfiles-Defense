@@ -16,7 +16,7 @@ description: |
   with WMI eventing enabled (config schema >= 4.1).
 references:
   - https://attack.mitre.org/techniques/T1546/003/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/wmi-subscription-sysmon.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/wmi-subscription-sysmon.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

@@ -67,7 +67,7 @@ jobs:
     # First-party only, and on the workflow_run path only when the release actually
     # succeeded (a failed/cancelled release must not fan a half-baked tag out).
     if: >-
-      github.repository_owner == 'Gerrrt' &&
+      github.repository_owner == 'dotgibson' &&
       (github.event_name == 'workflow_dispatch' ||
        github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
@@ -116,7 +116,7 @@ jobs:
       # fleet/, beside the OS clones. Full history: git subtree needs it.
       - name: Check out Core at the released tag
         if: steps.resolve.outputs.skip != 'true'
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.resolve.outputs.tag }}
           fetch-depth: 0

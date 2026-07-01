@@ -11,7 +11,7 @@ description: |
   movement & remote execution" / "Active Directory" folds; pairs with pth-lateral-nxc).
 references:
   - https://attack.mitre.org/techniques/T1569/002/
-  - https://github.com/Gerrrt/dotfiles-Kali/blob/main/PURPLE-TEAM.md
+  - https://github.com/dotgibson/dotfiles-Kali/blob/main/PURPLE-TEAM.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:
