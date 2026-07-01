@@ -11,7 +11,7 @@ description: |
   confirm the 4769 fires with Ticket_Encryption_Type 0x17.
 references:
   - https://attack.mitre.org/techniques/T1558/003/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/kerberoasting-4769.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/kerberoasting-4769.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

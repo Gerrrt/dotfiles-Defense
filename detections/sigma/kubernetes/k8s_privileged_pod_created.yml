@@ -14,7 +14,7 @@ description: |
 references:
   - https://attack.mitre.org/techniques/T1610/
   - https://attack.mitre.org/techniques/T1611/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/k8s-privileged-pod-audit.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/k8s-privileged-pod-audit.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

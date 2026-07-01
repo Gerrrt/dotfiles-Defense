@@ -12,7 +12,7 @@ description: |
   dotfiles-Kali (htpx pair aws-console-login-profile).
 references:
   - https://attack.mitre.org/techniques/T1098/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/aws-loginprofile-cloudtrail.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/aws-loginprofile-cloudtrail.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

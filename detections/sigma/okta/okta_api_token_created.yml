@@ -11,7 +11,7 @@ description: |
   Validate (purple): mint an API token from dotfiles-Kali (htpx pair okta-api-token).
 references:
   - https://attack.mitre.org/techniques/T1098/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/okta-api-token-audit.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/okta-api-token-audit.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:

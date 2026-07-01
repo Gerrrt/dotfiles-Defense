@@ -13,7 +13,7 @@ description: |
   pair okta-mfa-reset).
 references:
   - https://attack.mitre.org/techniques/T1556/006/
-  - https://github.com/Gerrrt/htpx/blob/main/entries/blue/okta-mfa-reset-audit.md
+  - https://github.com/dotgibson/htpx/blob/main/entries/blue/okta-mfa-reset-audit.md
 author: dotfiles-Defense
 date: 2026-06-30
 tags:
