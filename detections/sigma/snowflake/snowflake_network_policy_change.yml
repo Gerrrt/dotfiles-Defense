@@ -23,7 +23,9 @@ logsource:
   service: audit
 detection:
   selection:
-    query_text|contains: 'NETWORK POLICY'
+    query_text|contains:
+      - 'NETWORK POLICY'
+      - 'NETWORK_POLICY'
   filter_show:
     query_text|startswith: 'SHOW'
   condition: selection and not filter_show
