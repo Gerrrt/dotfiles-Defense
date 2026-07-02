@@ -57,7 +57,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 31 rules / 33 documents, organized by ATT&CK tactic
+### `sigma/` — 34 rules / 36 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -135,11 +135,20 @@ purple-validatable out of the box.
 | `github_branch_protection_tamper` | `protected_branch.destroy` / `protected_branch.policy_override` | T1562.001 | GitHub · gh-branch-protection-off |
 | `github_credential_backdoor` | `repo.create_deploy_key` / `personal_access_token.access_granted` | T1098 | GitHub · gh-deploy-key-backdoor |
 
+**`registry/`** (Harbor container-registry audit log — `product: harbor`, `service: audit`; field `operation`)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `harbor_image_pushed_trusted_tag` | `operation=push` `resource_type=artifact` | T1525 | Harbor · harbor-image-backdoor |
+| `harbor_robot_account_created` | `operation=create` `resource_type=robot` | T1098 | Harbor · harbor-robot-backdoor |
+| `harbor_artifact_deleted` | `operation=delete` artifact/repository | T1070 | Harbor · harbor-artifact-delete |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
-selections. The `cloud/`, `kubernetes/`, `okta/`, and `github/` rules are the
-non-Windows logsources here (`product: azure|aws|gcp|kubernetes|okta|github`) and
-mirror the htpx corpus's companion-only cloud, K8s, Okta, and GitHub Actions pairs.
+selections. The `cloud/`, `kubernetes/`, `okta/`, `github/`, and `registry/` rules
+are the non-Windows logsources here
+(`product: azure|aws|gcp|kubernetes|okta|github|harbor`) and mirror the htpx
+corpus's companion-only cloud, K8s, Okta, GitHub Actions, and Harbor registry pairs.
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 
