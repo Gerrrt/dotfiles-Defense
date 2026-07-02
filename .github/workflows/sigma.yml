@@ -22,11 +22,13 @@ on:
     branches: [main, master]
     paths:
       - "detections/sigma/**"
+      - "detections/siem/**"
       - "detections/sigma-validation-config.yml"
       - ".github/workflows/sigma.yml"
   pull_request:
     paths:
       - "detections/sigma/**"
+      - "detections/siem/**"
       - "detections/sigma-validation-config.yml"
       - ".github/workflows/sigma.yml"
 
@@ -58,6 +60,12 @@ jobs:
 
       - name: Compile every rule to Splunk (hard gate)
         run: ./detections/sigma/convert.sh splunk > /dev/null
+
+      - name: SIEM deploy-form drift gate (hard gate)
+        # The Splunk savedsearches deploy form is GENERATED from the Sigma tree; this
+        # proves the committed detections/siem/splunk/savedsearches.generated.conf still
+        # matches what gen-siem.sh produces, so the deploy artifact can't drift by hand.
+        run: ./detections/siem/gen-siem.sh --check
 
       - name: ATT&CK tag validity (advisory — needs live MITRE data)
         continue-on-error: true

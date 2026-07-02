@@ -21,7 +21,7 @@ validation note. Real IOC values from cases stay in `~/cases/*/iocs`, never here
 ## CI gate — the rules are validated as code
 
 The Sigma rules are gated on every change by `.github/workflows/sigma.yml` (the
-repo's `lint.yml` only covers shell). Two hard checks, one advisory:
+repo's `lint.yml` only covers shell). Three hard checks, one advisory:
 
 1. **Structural lint** (hermetic) —
    `sigma check --fail-on-issues -c detections/sigma-validation-config.yml`.
@@ -32,7 +32,11 @@ repo's `lint.yml` only covers shell). Two hard checks, one advisory:
    flakes on a network hiccup.
 2. **Compile** — every rule must compile to a real backend (Splunk) via
    `detections/sigma/convert.sh`. A rule that won't convert isn't deployable.
-3. **ATT&CK-tag validity** — advisory (`continue-on-error`); checks each
+3. **SIEM deploy-form drift** — `detections/siem/gen-siem.sh --check`. The Splunk
+   `savedsearches.generated.conf` deploy artifact is *generated* from the Sigma tree;
+   this proves the committed file still matches what the generator emits, so the
+   deploy form can't drift by hand (the same idea as htpx's `gen-views.sh --check`).
+4. **ATT&CK-tag validity** — advisory (`continue-on-error`); checks each
    `attack.tXXXX` is a real published technique, but never breaks the build on a
    transient MITRE download failure.
 
@@ -42,14 +46,17 @@ Run it locally (any pySigma backend):
 pip install "sigma-cli==3.0.2" "pysigma-backend-splunk==2.1.0"   # pinned, matching CI
 sigma check --fail-on-issues -c detections/sigma-validation-config.yml detections/sigma/   # lint
 detections/sigma/convert.sh splunk                                                         # compile → SPL
+detections/siem/gen-siem.sh --check                                                        # deploy-form drift
 ```
 
-`convert.sh` is the reproducible "Sigma → backend" step: it compiles each rule with
-`--without-pipeline` (raw logical fields, for a compile check). For *deployable*
-output, add a processing pipeline, e.g. `sigma convert -t splunk -p splunk_windows
-detections/sigma/<dir>/`. The `siem/` forms below are the worked, hand-wrapped
-deploy artifacts (with schedules, severities, entity mappings) that a bare
-`sigma convert` doesn't emit.
+`convert.sh` is the reproducible "Sigma → backend" *compile check*: it compiles each
+rule with `--without-pipeline` (raw logical fields). `gen-siem.sh` is the reproducible
+"Sigma → **deploy form**" step: it runs the backend's `savedsearches` output format
+(Windows dirs through the `splunk_windows` TA pipeline, non-Windows dirs raw) over the
+whole tree and writes `siem/splunk/savedsearches.generated.conf` — the deployable
+artifact a bare per-rule `convert.sh` doesn't assemble. The other `siem/` forms below
+stay hand-wrapped for what the generator can't emit (enriched examples, absence/join
+correlations, Sentinel).
 
 ## What ships today (the starter pack)
 
@@ -183,9 +190,14 @@ is a lab baseline, not production — graduate to `sysmon-modular` and tune.
 
 ### `siem/` — deployable backend forms
 
-- **`splunk/savedsearches.conf`** — five single-event rules hand-compiled to Splunk
-  saved searches (the worked "compile Sigma → backend" example; real pipelines use
-  `sigma convert`).
+- **`splunk/savedsearches.generated.conf`** — GENERATED. Every rule in `sigma/`
+  compiled to its Splunk `savedsearches` deploy stanza by `gen-siem.sh`
+  (Windows dirs through the `splunk_windows` TA pipeline, non-Windows dirs raw), and
+  drift-gated in CI via `gen-siem.sh --check`. This is the "real pipeline" the note
+  above promised: edit a rule → `gen-siem.sh` → commit both. Do not hand-edit it.
+- **`splunk/savedsearches.conf`** — HAND. Five single-event rules with hand-tuned
+  enrichment (stats correlation, per-search schedules/severities/`action.notable`)
+  the bare `savedsearches` format doesn't emit — kept as the worked, richer example.
 - **`splunk/correlation_searches.conf`** — the three *absence/join-based* detections
   Sigma can't express — **Golden Ticket** (4769-without-4768), **Silver Ticket**
   (4624-without-4769), and **NTLM relay** (4624 workstation/source mismatch) — as
