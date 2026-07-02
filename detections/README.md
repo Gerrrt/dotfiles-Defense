@@ -132,8 +132,8 @@ purple-validatable out of the box.
 | Rule | Event / source | ATT&CK | Validate with |
 | ---- | -------------- | ------ | ------------- |
 | `github_self_hosted_runner_registered` | `self_hosted_runner.created` | T1543 | GitHub · gh-self-hosted-runner |
-| `github_branch_protection_tamper` | `protected_branch.destroy`/`policy_override` | T1562.001 | GitHub · gh-branch-protection-off |
-| `github_credential_backdoor` | `repo.create_deploy_key`/PAT grant | T1098 | GitHub · gh-deploy-key-backdoor |
+| `github_branch_protection_tamper` | `protected_branch.destroy` / `protected_branch.policy_override` | T1562.001 | GitHub · gh-branch-protection-off |
+| `github_credential_backdoor` | `repo.create_deploy_key` / `personal_access_token.access_granted` | T1098 | GitHub · gh-deploy-key-backdoor |
 
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
