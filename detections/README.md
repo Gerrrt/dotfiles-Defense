@@ -57,7 +57,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 28 rules / 30 documents, organized by ATT&CK tactic
+### `sigma/` — 31 rules / 33 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -127,11 +127,19 @@ purple-validatable out of the box.
 | `okta_api_token_created` | `system.api_token.create` | T1098 | Okta · okta-api-token |
 | `okta_idp_created` | `system.idp.lifecycle.create`/activate | T1556/T1484.002 | Okta · okta-idp-backdoor |
 
+**`github/`** (GitHub Enterprise audit log — `product: github`, `service: audit`; field `action`)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `github_self_hosted_runner_registered` | `self_hosted_runner.created` | T1543 | GitHub · gh-self-hosted-runner |
+| `github_branch_protection_tamper` | `protected_branch.destroy` / `protected_branch.policy_override` | T1562.001 | GitHub · gh-branch-protection-off |
+| `github_credential_backdoor` | `repo.create_deploy_key` / `personal_access_token.access_granted` | T1098 | GitHub · gh-deploy-key-backdoor |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
-selections. The `cloud/`, `kubernetes/`, and `okta/` rules are the non-Windows
-logsources here (`product: azure|aws|gcp|kubernetes|okta`) and mirror the htpx
-corpus's companion-only cloud, K8s, and Okta pairs.
+selections. The `cloud/`, `kubernetes/`, `okta/`, and `github/` rules are the
+non-Windows logsources here (`product: azure|aws|gcp|kubernetes|okta|github`) and
+mirror the htpx corpus's companion-only cloud, K8s, Okta, and GitHub Actions pairs.
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 
