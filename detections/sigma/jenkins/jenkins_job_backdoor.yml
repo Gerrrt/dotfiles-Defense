@@ -2,12 +2,14 @@ title: Jenkins job created or reconfigured (malicious job / pipeline)
 id: a3d57201-71d4-49fb-9a28-df32b823fb10
 status: experimental
 description: |
-  Detects Jenkins job creation (/createItem) or reconfiguration (job/<name>/configSubmit)
-  in the Audit Trail plugin log. Jenkins is a deployment tool; a job whose build step runs
-  attacker code executes on the controller or fans out to build agents (harvesting their
-  credentials and reaching their networks), and a cron/SCM trigger makes it recurring
-  (T1072). Job changes are routine, so triage on an unexpected actor, a sensitive job, edits
-  outside config-as-code (JCasC / pipeline-in-SCM), or a change immediately followed by a build.
+  Detects Jenkins job creation (/createItem) or job reconfiguration
+  (/job/<name>/configSubmit) in the Audit Trail plugin log. Jenkins is a deployment tool;
+  a job whose build step runs attacker code executes on the controller or fans out to build
+  agents (harvesting their credentials and reaching their networks), and a cron/SCM trigger
+  makes it recurring (T1072). The reconfigure match is scoped to the job path so global
+  system-config submits (also /configSubmit) don't trip it. Job changes are routine, so
+  triage on an unexpected actor, a sensitive job, edits outside config-as-code
+  (JCasC / pipeline-in-SCM), or a change immediately followed by a build.
   Validate (purple): create a job via /createItem from dotfiles-Kali (htpx pair
   jenkins-job-backdoor).
 references:
@@ -23,10 +25,13 @@ logsource:
   product: jenkins
   service: audit
 detection:
-  keywords:
-    - '/createItem'
-    - '/configSubmit'
-  condition: keywords
+  create_item:
+    uri|contains: '/createItem'
+  job_reconfig:
+    uri|contains|all:
+      - '/job/'
+      - '/configSubmit'
+  condition: create_item or job_reconfig
 falsepositives:
   - Routine job authoring in active shops - prefer pipelines defined in version-controlled
     Jenkinsfiles and alert on UI-side job edits that bypass that review path.

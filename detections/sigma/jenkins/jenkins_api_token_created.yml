@@ -3,11 +3,11 @@ id: 970de00f-3f9e-420f-8dbc-5e3c1f9f9445
 status: experimental
 description: |
   Detects generation of a Jenkins user API token in the Audit Trail plugin log (a request
-  to ApiTokenProperty/generateNewToken). API tokens are long-lived, non-interactive
-  credentials that drive the Jenkins REST API and CLI and survive the account's password
-  reset, so one minted by an unexpected actor - or against a privileged/service account,
-  or during an incident - is the persistence tell (T1098). Reconcile new tokens against
-  known CI integrations and prefer short-lived tokens.
+  to jenkins.security.ApiTokenProperty/generateNewToken). API tokens are long-lived,
+  non-interactive credentials that drive the Jenkins REST API and CLI and survive the
+  account's password reset, so one minted by an unexpected actor - or against a
+  privileged/service account, or during an incident - is the persistence tell (T1098).
+  Reconcile new tokens against known CI integrations and prefer short-lived tokens.
   Validate (purple): mint an API token via generateNewToken from dotfiles-Kali (htpx pair
   jenkins-api-token).
 references:
@@ -22,9 +22,9 @@ logsource:
   product: jenkins
   service: audit
 detection:
-  keywords:
-    - 'generateNewToken'
-  condition: keywords
+  selection:
+    uri|contains: 'ApiTokenProperty/generateNewToken'
+  condition: selection
 falsepositives:
   - Users provisioning their own tokens for sanctioned automation - allowlist the expected
     actors and alert on tokens minted for accounts that don't normally hold them.

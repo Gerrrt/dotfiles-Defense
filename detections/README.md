@@ -179,8 +179,8 @@ purple-validatable out of the box.
 | Rule | Event / source | ATT&CK | Validate with |
 | ---- | -------------- | ------ | ------------- |
 | `jenkins_script_console` | `/script` / `/scriptText` request | T1059 | Jenkins · jenkins-script-console |
-| `jenkins_api_token_created` | `generateNewToken` request | T1098 | Jenkins · jenkins-api-token |
-| `jenkins_job_backdoor` | `/createItem` / `/configSubmit` request | T1072 | Jenkins · jenkins-job-backdoor |
+| `jenkins_api_token_created` | `ApiTokenProperty/generateNewToken` request | T1098 | Jenkins · jenkins-api-token |
+| `jenkins_job_backdoor` | `/createItem` / `/job/<name>/configSubmit` request | T1072 | Jenkins · jenkins-job-backdoor |
 
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
@@ -190,8 +190,9 @@ logsources here
 (`product: azure|aws|gcp|kubernetes|okta|github|harbor|gitlab|vault|terraform|jenkins`)
 and mirror the htpx corpus's companion-only cloud, K8s, Okta, GitHub Actions, Harbor
 registry, GitLab CI/CD, HashiCorp Vault, Terraform Cloud, and Jenkins pairs. The
-`jenkins/` rules match the Audit Trail plugin's request-URI log lines via Sigma
-`keywords` (the plugin log isn't structured JSON like the other audit sources).
+`jenkins/` rules match the Audit Trail plugin's request-URI log line via a `uri`
+field (`uri|contains`), scoped to the specific endpoints (e.g. job `configSubmit` is
+bound to the `/job/` path so global config submits don't trip it).
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 

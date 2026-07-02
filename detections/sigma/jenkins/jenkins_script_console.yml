@@ -23,10 +23,11 @@ logsource:
   product: jenkins
   service: audit
 detection:
-  keywords:
-    - '/scriptText'
-    - '/script'
-  condition: keywords
+  selection:
+    uri|contains:
+      - '/scriptText'
+      - '/script'
+  condition: selection
 falsepositives:
   - Legitimate administrator break-glass use of the Script Console - allowlist the
     expected admins and change windows; treat service-account or off-hours use as an alert.
