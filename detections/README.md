@@ -148,8 +148,8 @@ purple-validatable out of the box.
 | Rule | Event / source | ATT&CK | Validate with |
 | ---- | -------------- | ------ | ------------- |
 | `gitlab_rogue_runner_associated` | `set_runner_associated_projects` | T1543 | GitLab · gl-runner-hijack |
-| `gitlab_protected_branch_tamper` | `protected_branch_removed`/`_created` | T1562.001 | GitLab · gl-protected-branch-off |
-| `gitlab_token_backdoor` | `project_access_token_created`/`deploy_token_created` | T1098 | GitLab · gl-token-backdoor |
+| `gitlab_protected_branch_tamper` | `protected_branch_removed` / `protected_branch_created` | T1562.001 | GitLab · gl-protected-branch-off |
+| `gitlab_token_backdoor` | `project_access_token_created` / `personal_access_token_created` / `deploy_token_created` | T1098 | GitLab · gl-token-backdoor |
 
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
