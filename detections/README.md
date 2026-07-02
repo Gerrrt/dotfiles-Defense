@@ -64,7 +64,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 40 rules / 42 documents, organized by ATT&CK tactic
+### `sigma/` — 43 rules / 45 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -166,13 +166,21 @@ purple-validatable out of the box.
 | `vault_approle_backdoor` | create/update on `auth/approle/role/` or `sys/auth/` | T1098 | Vault · vault-approle-backdoor |
 | `vault_audit_device_disabled` | `delete` on `sys/audit/` path | T1562.001 | Vault · vault-audit-disable |
 
+**`terraform/`** (Terraform Cloud audit trail — `product: terraform`, `service: audit`; fields `resource.type`/`resource.action`)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `tfc_rogue_agent_pool` | `agent_pool` `create` | T1543 | Terraform · tfc-agent-hijack |
+| `tfc_token_backdoor` | `authentication_token` `create` | T1098 | Terraform · tfc-token-backdoor |
+| `tfc_variable_injection` | `variable` `create`/`update` | T1072 | Terraform · tfc-var-injection |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
 selections. The `cloud/`, `kubernetes/`, `okta/`, `github/`, `registry/`,
-`gitlab/`, and `vault/` rules are the non-Windows logsources here
-(`product: azure|aws|gcp|kubernetes|okta|github|harbor|gitlab|vault`) and mirror the
-htpx corpus's companion-only cloud, K8s, Okta, GitHub Actions, Harbor registry,
-GitLab CI/CD, and HashiCorp Vault pairs.
+`gitlab/`, `vault/`, and `terraform/` rules are the non-Windows logsources here
+(`product: azure|aws|gcp|kubernetes|okta|github|harbor|gitlab|vault|terraform`) and
+mirror the htpx corpus's companion-only cloud, K8s, Okta, GitHub Actions, Harbor
+registry, GitLab CI/CD, HashiCorp Vault, and Terraform Cloud pairs.
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 
