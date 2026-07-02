@@ -57,7 +57,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 34 rules / 36 documents, organized by ATT&CK tactic
+### `sigma/` — 37 rules / 39 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -143,12 +143,21 @@ purple-validatable out of the box.
 | `harbor_robot_account_created` | `operation=create` `resource_type=robot` | T1098 | Harbor · harbor-robot-backdoor |
 | `harbor_artifact_deleted` | `operation=delete` artifact/repository | T1070 | Harbor · harbor-artifact-delete |
 
+**`gitlab/`** (GitLab audit events — `product: gitlab`, `service: audit`; field `event_type`)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `gitlab_rogue_runner_associated` | `set_runner_associated_projects` | T1543 | GitLab · gl-runner-hijack |
+| `gitlab_protected_branch_tamper` | `protected_branch_removed` / `protected_branch_created` | T1562.001 | GitLab · gl-protected-branch-off |
+| `gitlab_token_backdoor` | `project_access_token_created` / `personal_access_token_created` / `deploy_token_created` | T1098 | GitLab · gl-token-backdoor |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
-selections. The `cloud/`, `kubernetes/`, `okta/`, `github/`, and `registry/` rules
-are the non-Windows logsources here
-(`product: azure|aws|gcp|kubernetes|okta|github|harbor`) and mirror the htpx
-corpus's companion-only cloud, K8s, Okta, GitHub Actions, and Harbor registry pairs.
+selections. The `cloud/`, `kubernetes/`, `okta/`, `github/`, `registry/`, and
+`gitlab/` rules are the non-Windows logsources here
+(`product: azure|aws|gcp|kubernetes|okta|github|harbor|gitlab`) and mirror the htpx
+corpus's companion-only cloud, K8s, Okta, GitHub Actions, Harbor registry, and
+GitLab CI/CD pairs.
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 
