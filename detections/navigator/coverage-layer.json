@@ -1,0 +1,209 @@
+{
+  "name": "dotfiles-Defense \u2014 detection coverage",
+  "description": "Generated from detections/sigma/ by gen-navigator.sh. Score = number of Sigma rules detecting each ATT&CK technique.",
+  "domain": "enterprise-attack",
+  "versions": {
+    "attack": "16",
+    "navigator": "4.9.5",
+    "layer": "4.5"
+  },
+  "techniques": [
+    {
+      "techniqueID": "T1003.001",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): lsass_handle_access"
+    },
+    {
+      "techniqueID": "T1003.003",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): ntds_dump_ntdsutil_vss_4688"
+    },
+    {
+      "techniqueID": "T1003.006",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): dcsync_replication_4662"
+    },
+    {
+      "techniqueID": "T1047",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): wmiexec_wmiprvse_child_4688"
+    },
+    {
+      "techniqueID": "T1053.005",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): scheduled_task_suspicious_4698"
+    },
+    {
+      "techniqueID": "T1059",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): jenkins_script_console"
+    },
+    {
+      "techniqueID": "T1070",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): harbor_artifact_deleted"
+    },
+    {
+      "techniqueID": "T1072",
+      "score": 2,
+      "enabled": true,
+      "comment": "2 rule(s): jenkins_job_backdoor, tfc_variable_injection"
+    },
+    {
+      "techniqueID": "T1098",
+      "score": 10,
+      "enabled": true,
+      "comment": "10 rule(s): aws_login_profile_created, github_credential_backdoor, gitlab_token_backdoor, harbor_robot_account_created, jenkins_api_token_created, k8s_clusteradmin_binding, okta_api_token_created, rbcd_allowedtoact_5136, tfc_token_backdoor, vault_approle_backdoor"
+    },
+    {
+      "techniqueID": "T1098.001",
+      "score": 3,
+      "enabled": true,
+      "comment": "3 rule(s): aws_iam_access_key_created, entra_sp_credential_backdoor, gcp_service_account_key_created"
+    },
+    {
+      "techniqueID": "T1110.003",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): password_spray_4625"
+    },
+    {
+      "techniqueID": "T1134.001",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): potato_seimpersonate_4688"
+    },
+    {
+      "techniqueID": "T1207",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): dcshadow_rogue_dc_4742"
+    },
+    {
+      "techniqueID": "T1484.002",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): okta_idp_created"
+    },
+    {
+      "techniqueID": "T1525",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): harbor_image_pushed_trusted_tag"
+    },
+    {
+      "techniqueID": "T1528",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): entra_illicit_consent_grant"
+    },
+    {
+      "techniqueID": "T1543",
+      "score": 3,
+      "enabled": true,
+      "comment": "3 rule(s): github_self_hosted_runner_registered, gitlab_rogue_runner_associated, tfc_rogue_agent_pool"
+    },
+    {
+      "techniqueID": "T1546.003",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): wmi_event_subscription_consumer"
+    },
+    {
+      "techniqueID": "T1552.006",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): gpp_cpassword_sysvol_5145"
+    },
+    {
+      "techniqueID": "T1555",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): vault_bulk_secret_read"
+    },
+    {
+      "techniqueID": "T1556",
+      "score": 2,
+      "enabled": true,
+      "comment": "2 rule(s): okta_idp_created, shadow_credentials_keycredentiallink_5136"
+    },
+    {
+      "techniqueID": "T1556.006",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): okta_mfa_factor_reset"
+    },
+    {
+      "techniqueID": "T1558.003",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): kerberoasting_rc4_tgs"
+    },
+    {
+      "techniqueID": "T1558.004",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): asrep_roast_probing_4771"
+    },
+    {
+      "techniqueID": "T1562.001",
+      "score": 3,
+      "enabled": true,
+      "comment": "3 rule(s): github_branch_protection_tamper, gitlab_protected_branch_tamper, vault_audit_device_disabled"
+    },
+    {
+      "techniqueID": "T1563.002",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): rdp_hijack_tscon_4688"
+    },
+    {
+      "techniqueID": "T1569.002",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): service_creation_psexec_7045"
+    },
+    {
+      "techniqueID": "T1609",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): k8s_pod_exec_attach"
+    },
+    {
+      "techniqueID": "T1610",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): k8s_privileged_pod_created"
+    },
+    {
+      "techniqueID": "T1611",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): k8s_privileged_pod_created"
+    },
+    {
+      "techniqueID": "T1649",
+      "score": 1,
+      "enabled": true,
+      "comment": "1 rule(s): adcs_esc1_san_mismatch_4886"
+    }
+  ],
+  "gradient": {
+    "colors": [
+      "#ffffff",
+      "#66b1ff"
+    ],
+    "minValue": 0,
+    "maxValue": 10
+  },
+  "legendItems": [],
+  "showTacticRowBackground": false,
+  "hideDisabled": false
+}
