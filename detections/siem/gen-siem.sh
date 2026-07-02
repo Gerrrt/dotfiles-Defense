@@ -33,7 +33,20 @@ SIGMA="$HERE/../sigma"
 OUT="$HERE/splunk/savedsearches.generated.conf"
 
 CHECK=0
-[[ "${1:-}" == "--check" ]] && CHECK=1
+if [[ $# -gt 1 ]]; then
+  echo "gen-siem: too many arguments" >&2
+  echo "usage: gen-siem.sh [--check]" >&2
+  exit 2
+fi
+case "${1:-}" in
+"") CHECK=0 ;;
+--check) CHECK=1 ;;
+*)
+  echo "gen-siem: unknown argument '$1'" >&2
+  echo "usage: gen-siem.sh [--check]" >&2
+  exit 2
+  ;;
+esac
 
 if ! command -v sigma >/dev/null 2>&1; then
   echo "sigma not found — pip install sigma-cli pysigma-backend-splunk" >&2
@@ -48,13 +61,35 @@ NONWIN_DIRS=(cloud kubernetes okta github gitlab registry vault)
 # Each `sigma convert -f savedsearches` invocation prepends its own [default] stanza
 # (global dispatch window). Strip every per-invocation [default] block and emit one
 # canonical [default] at the top instead, so the concatenated file has exactly one.
+# Drop the per-invocation [default] stanza (a global dispatch window sigma emits once
+# per convert call); one canonical [default] is written in the header instead. Skip
+# from the [default] header until the NEXT stanza header (^[) — not the next blank line,
+# which would be brittle if the upstream format ever reflowed blank lines.
 strip_default() {
   awk '
-    /^\[default\]$/     { skip=1; next }
-    skip && /^[[:space:]]*$/ { skip=0; next }
-    skip                { next }
+    /^\[default\]$/ { skip=1; next }
+    skip && /^\[/   { skip=0 }
+    skip            { next }
     { print }
   '
+}
+
+# Compile one rule dir to savedsearches stanzas. Rules are passed as an explicit,
+# byte-sorted file list (NOT the bare directory): `sigma convert <dir>` enumerates in
+# filesystem order, which differs between machines and would make the generated file —
+# and therefore the --check drift gate — non-reproducible across environments.
+#   $1 = dir under sigma/   $2… = extra `sigma convert` args (pipeline selection)
+gen_dir() {
+  local dir="$1"
+  shift
+  [[ -d "$SIGMA/$dir" ]] || return 0
+  local files=()
+  mapfile -t files < <(find "$SIGMA/$dir" -maxdepth 1 -name '*.yml' | LC_ALL=C sort)
+  [[ ${#files[@]} -gt 0 ]] || return 0
+  # No stderr suppression: sigma's "Parsing Sigma rules" notice goes to stderr (it does
+  # not pollute the generated stdout), and a real conversion error must stay visible —
+  # with pipefail it also fails the pipeline so the drift gate reports the root cause.
+  sigma convert -t splunk -f savedsearches "$@" "${files[@]}" | strip_default
 }
 
 generate() {
@@ -77,12 +112,12 @@ HEADER
   for d in "${WIN_DIRS[@]}"; do
     [[ -d "$SIGMA/$d" ]] || continue
     printf '\n### %s (splunk_windows)\n' "$d"
-    sigma convert -t splunk -f savedsearches -p splunk_windows "$SIGMA/$d" 2>/dev/null | strip_default
+    gen_dir "$d" -p splunk_windows
   done
   for d in "${NONWIN_DIRS[@]}"; do
     [[ -d "$SIGMA/$d" ]] || continue
     printf '\n### %s (--without-pipeline)\n' "$d"
-    sigma convert -t splunk -f savedsearches --without-pipeline "$SIGMA/$d" 2>/dev/null | strip_default
+    gen_dir "$d" --without-pipeline
   done
 }
 
