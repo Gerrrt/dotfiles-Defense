@@ -64,7 +64,7 @@ The first content drop mirrors the **htpx red↔blue corpus**: each rule below
 detects a technique that `dotfiles-Kali` can execute on demand, so every one is
 purple-validatable out of the box.
 
-### `sigma/` — 43 rules / 45 documents, organized by ATT&CK tactic
+### `sigma/` — 46 rules / 48 documents, organized by ATT&CK tactic
 
 **`credential_access/`**
 
@@ -174,13 +174,25 @@ purple-validatable out of the box.
 | `tfc_token_backdoor` | `authentication_token` `create` | T1098 | Terraform · tfc-token-backdoor |
 | `tfc_variable_injection` | `variable` `create`/`update` | T1072 | Terraform · tfc-var-injection |
 
+**`jenkins/`** (Jenkins Audit Trail plugin — `product: jenkins`, `service: audit`; keyword/URI matches)
+
+| Rule | Event / source | ATT&CK | Validate with |
+| ---- | -------------- | ------ | ------------- |
+| `jenkins_script_console` | `/script` / `/scriptText` request | T1059 | Jenkins · jenkins-script-console |
+| `jenkins_api_token_created` | `ApiTokenProperty/generateNewToken` request | T1098 | Jenkins · jenkins-api-token |
+| `jenkins_job_backdoor` | `/createItem` / `/job/<name>/configSubmit` request | T1072 | Jenkins · jenkins-job-backdoor |
+
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
 selections. The `cloud/`, `kubernetes/`, `okta/`, `github/`, `registry/`,
-`gitlab/`, `vault/`, and `terraform/` rules are the non-Windows logsources here
-(`product: azure|aws|gcp|kubernetes|okta|github|harbor|gitlab|vault|terraform`) and
-mirror the htpx corpus's companion-only cloud, K8s, Okta, GitHub Actions, Harbor
-registry, GitLab CI/CD, HashiCorp Vault, and Terraform Cloud pairs.
+`gitlab/`, `vault/`, `terraform/`, and `jenkins/` rules are the non-Windows
+logsources here
+(`product: azure|aws|gcp|kubernetes|okta|github|harbor|gitlab|vault|terraform|jenkins`)
+and mirror the htpx corpus's companion-only cloud, K8s, Okta, GitHub Actions, Harbor
+registry, GitLab CI/CD, HashiCorp Vault, Terraform Cloud, and Jenkins pairs. The
+`jenkins/` rules match the Audit Trail plugin's request-URI log line via a `uri`
+field (`uri|contains`), scoped to the specific endpoints (e.g. job `configSubmit` is
+bound to the `/job/` path so global config submits don't trip it).
 
 ### `sysmon/` — `sysmonconfig-detection-lab.xml`
 
