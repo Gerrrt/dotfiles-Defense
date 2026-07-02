@@ -23,12 +23,14 @@ on:
     paths:
       - "detections/sigma/**"
       - "detections/siem/**"
+      - "detections/navigator/**"
       - "detections/sigma-validation-config.yml"
       - ".github/workflows/sigma.yml"
   pull_request:
     paths:
       - "detections/sigma/**"
       - "detections/siem/**"
+      - "detections/navigator/**"
       - "detections/sigma-validation-config.yml"
       - ".github/workflows/sigma.yml"
 
@@ -66,6 +68,12 @@ jobs:
         # proves the committed detections/siem/splunk/savedsearches.generated.conf still
         # matches what gen-siem.sh produces, so the deploy artifact can't drift by hand.
         run: ./detections/siem/gen-siem.sh --check
+
+      - name: ATT&CK Navigator layer drift gate (hard gate)
+        # The coverage layer is GENERATED from the Sigma rules' attack.* tags; this proves
+        # the committed detections/navigator/coverage-layer.json still matches, so the
+        # coverage view can't drift from the rules.
+        run: ./detections/navigator/gen-navigator.sh --check
 
       - name: ATT&CK tag validity (advisory — needs live MITRE data)
         continue-on-error: true
