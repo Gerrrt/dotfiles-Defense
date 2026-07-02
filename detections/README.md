@@ -151,7 +151,7 @@ purple-validatable out of the box.
 | `gitlab_protected_branch_tamper` | `protected_branch_removed` / `protected_branch_created` | T1562.001 | GitLab · gl-protected-branch-off |
 | `gitlab_token_backdoor` | `project_access_token_created` / `personal_access_token_created` / `deploy_token_created` | T1098 | GitLab · gl-token-backdoor |
 
-**`secrets/`** (HashiCorp Vault audit device — `product: vault`, `service: audit`; fields `request.operation`/`request.path`)
+**`vault/`** (HashiCorp Vault audit device — `product: vault`, `service: audit`; fields `request.operation`/`request.path`)
 
 | Rule | Event / source | ATT&CK | Validate with |
 | ---- | -------------- | ------ | ------------- |
@@ -162,7 +162,7 @@ purple-validatable out of the box.
 `password_spray` and `asrep_roast_probing` are Sigma **correlation** rules
 (a base event + a `value_count` over a window); the rest are single-event
 selections. The `cloud/`, `kubernetes/`, `okta/`, `github/`, `registry/`,
-`gitlab/`, and `secrets/` rules are the non-Windows logsources here
+`gitlab/`, and `vault/` rules are the non-Windows logsources here
 (`product: azure|aws|gcp|kubernetes|okta|github|harbor|gitlab|vault`) and mirror the
 htpx corpus's companion-only cloud, K8s, Okta, GitHub Actions, Harbor registry,
 GitLab CI/CD, and HashiCorp Vault pairs.
